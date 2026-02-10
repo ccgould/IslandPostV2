@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="IslandPostPOS.Views.Controls.PaginationControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:IslandPostPOS.Views.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <StackPanel Orientation="Horizontal">
+        <HyperlinkButton
+            x:Name="PreviousPageButton"
+            Click="PreviousPageButton_Click"
+            Content="&lt; Prev" />
+        <TextBlock
+            VerticalAlignment="Center"
+            Text="Page" />
+        <NumberBox
+            Maximum="{x:Bind MaxPage, Mode=OneWay}"
+            Minimum="{x:Bind MinPage, Mode=OneWay}"
+            ValueChanged="CurrentPageNumberBox_ValueChanged"
+            Value="{x:Bind CurrentPage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        <TextBlock
+            VerticalAlignment="Center"
+            Text=" / " />
+        <TextBlock
+            VerticalAlignment="Center"
+            Text="{x:Bind MaxPage, Mode=OneWay}" />
+        <HyperlinkButton
+            x:Name="NextPageButton"
+            Click="NextPageButton_Click"
+            Content="Next &gt;" />
+    </StackPanel>
+</UserControl>

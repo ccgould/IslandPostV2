@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="IslandPostPOS.Views.PaymentPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:IslandPostPOS.Views"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:winConverters="using:CommunityToolkit.WinUI.Converters"
+    xmlns:models="using:IslandPostPOS.Models"
+    xmlns:dto="using:IslandPostPOS.Shared.DTOs"
+    xmlns:sys="using:System"
+    xmlns:converters="using:IslandPostPOS.Converters"
+    x:Name="pageRoot"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <UniformGridLayout x:Key="UniformGridLayout2" MinItemWidth="108" MinItemHeight="108" MinRowSpacing="5" MinColumnSpacing="5"/>
+        <converters:DecimalToDoubleConverter x:Name="DecimalToDoubleConverter"/>
+        <converters:DateTimeToStringConverter x:Key="DateTimeToStringConverter"/>
+        <winConverters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    </Page.Resources>
+
+    <Grid Margin="100,40,0,0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!--Sale Grid-->
+        <Grid RowSpacing="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!--Title and Back Button-->
+            <Grid ColumnSpacing="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Button BorderThickness="0" x:Name="backBTN" Click="backBTN_Click" Visibility="{x:Bind ViewModel.IsTransactionComplete, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=True, Mode=OneWay}">
+                    <SymbolIcon Symbol="Back"/>
+                </Button>
+
+                <TextBlock Grid.Column="1" FontWeight="Bold" Text="Sale" FontSize="25" VerticalAlignment="Center"/>
+            </Grid>
+
+            <!--Items-->
+            <ScrollViewer Grid.Row="1"
+                          Margin="0,10"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"> 
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.SaleItems}" HorizontalAlignment="Stretch">
+                    <ItemsRepeater.Layout>
+                        <StackLayout Orientation="Vertical" />
+                    </ItemsRepeater.Layout>
+                    <ItemsRepeater.ItemTemplate>
+                        <!-- Each item is a Purchase Item -->
+                        <DataTemplate x:DataType="models:PurchaseItem">
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="40"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="{x:Bind Quantity}"/>
+                                <TextBlock Text="{x:Bind Description}" Grid.Column="1" FontWeight="Bold"/>
+                                <TextBlock Text="{x:Bind Price}" Grid.Column="2" FontWeight="Bold"/>
+                                <TextBlock Text="{x:Bind Brand}" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" FontWeight="Bold"/>
+                                <!--Seperator-->
+                                <Rectangle Visibility="Collapsed" Margin="10,10" Grid.Row="3" Grid.ColumnSpan="3" Height="1" Fill="{ThemeResource SystemControlBackgroundBaseLowBrush}" HorizontalAlignment="Stretch" />
+
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </ScrollViewer>
+
+            <!--Seperator-->
+            <Rectangle Margin="10,0" Grid.Row="2" Height="1" Fill="{ThemeResource SystemControlBackgroundBaseLowBrush}" HorizontalAlignment="Stretch" />
+
+            <!--  Subtotal and tax -->
+            <Grid Grid.Row="3">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Subtotal" FontWeight="Bold"/>
+                <TextBlock Text="{x:Bind FormatAmount(ViewModel.SubTotal), Mode=OneWay}" FontWeight="Bold" Grid.Column="1"/>
+                <TextBlock Text="Tax:" FontWeight="Bold" Grid.Row="1"/>
+                <TextBlock Text="{x:Bind FormatAmount(ViewModel.TotalTax), Mode=OneWay}" FontWeight="Bold" Grid.Row="1" Grid.Column="1"/>
+            </Grid>
+            
+            <!--Seperator-->
+            <Rectangle Margin="10,0" Grid.Row="4" Height="1" Fill="{ThemeResource SystemControlBackgroundBaseLowBrush}" HorizontalAlignment="Stretch" />
+            
+            <!--  Total -->
+            <Grid Grid.Row="5">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                    <TextBlock Text="Sale Total" FontWeight="Bold"/>
+                    <TextBlock Text="{x:Bind ViewModel.SaleCountTxt, Mode=OneWay}" FontSize="12" VerticalAlignment="Bottom" Foreground="{ThemeResource AccentAAFillColorDefaultBrush}"/>
+                </StackPanel>
+                <TextBlock Text="{x:Bind FormatAmount(ViewModel.SaleTotal), Mode=OneWay}" FontWeight="Bold" Grid.Column="1"/>
+            </Grid>
+
+            <!--Seperator-->
+            <Rectangle Margin="10,0" Grid.Row="6" Height="1" Fill="{ThemeResource SystemControlBackgroundBaseLowBrush}" HorizontalAlignment="Stretch" />
+
+            <!--Items-->
+            <ScrollViewer Grid.Row="7"
+                          Margin="0,10"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.Transactions,Mode=OneWay}" HorizontalAlignment="Stretch">
+                    <ItemsRepeater.Layout>
+                        <StackLayout Orientation="Vertical" />
+                    </ItemsRepeater.Layout>
+                    <ItemsRepeater.ItemTemplate>
+                        <!-- Each item is a Transaction Item -->
+                        <DataTemplate x:DataType="dto:TransactionDTO">
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="{x:Bind PaymentMethodName}" FontWeight="SemiBold"/>
+                                <TextBlock Text="{x:Bind Amount}" Grid.Column="1" FontWeight="Bold"/>
+                                <TextBlock Text="{x:Bind RegisteredDate, Converter={StaticResource DateTimeToStringConverter}}" Grid.Row="1" Grid.Column="0" FontSize="12"/>
+                                <!--Seperator-->
+                                <Rectangle Visibility="Collapsed" Margin="10,10" Grid.Row="3" Grid.ColumnSpan="3" Height="1" Fill="{ThemeResource SystemControlBackgroundBaseLowBrush}" HorizontalAlignment="Stretch" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </ScrollViewer>
+
+            <!--  Total -->
+            <Grid Grid.Row="8" Visibility="{x:Bind ViewModel.GiveChange,Converter={StaticResource BoolToVisibilityConverter},Mode=OneWay}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Change"/>
+                <TextBlock Text="{x:Bind FormatAmount(ViewModel.ChangeAmount), Mode=OneWay}" FontWeight="Bold" Grid.Column="1"/>
+            </Grid>
+        </Grid>
+
+        <!--Sale List-->
+        <Grid Visibility="{x:Bind ViewModel.IsTransactionComplete, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=True, Mode=OneWay}" Margin="10,0,60,10" Padding="20,10"  Grid.Column="1" Background="white">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!--Amount-->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <TextBlock Text="Amount To Pay" VerticalAlignment="Center" FontWeight="Bold" FontSize="25"/>
+                <NumberBox 
+                           Grid.Column="1"
+                           FontWeight="Bold" 
+                           FontSize="25"
+                           Value="{x:Bind ViewModel.AmountToPay,Converter={StaticResource DecimalToDoubleConverter}, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" 
+                           Minimum="0" 
+                           VerticalAlignment="Stretch"
+                           HorizontalAlignment="Stretch"/>
+                <TextBlock Grid.Column="1" Grid.Row="1" Text="Edit to make a partial payment"/>
+            </Grid>
+
+            <!--Payment Options-->
+            <Grid x:Name="RootGrid" Grid.Row="1" RowSpacing="5" Margin="0,10,0,0" DataContext="{x:Bind ViewModel}">
+                <ItemsRepeater
+                    ItemsSource="{x:Bind ViewModel.PaymentMethods}"
+                    Layout="{StaticResource UniformGridLayout2}">
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="models:PaymentMethod">
+                            <Button Content="{x:Bind Name}" 
+                                    VerticalAlignment="Stretch" 
+                                    HorizontalAlignment="Stretch"
+                                    Height="100"
+                                    Width="100"
+                                    Style="{ThemeResource PayButtonStyle}"
+                                    Command="{Binding DataContext.PaymentOptionCommand, ElementName=RootGrid}"
+                                    CommandParameter="{x:Bind}"/>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </Grid>
+        </Grid>
+
+        <!-- Transaction Complete Grid -->
+        <Grid Visibility="{x:Bind ViewModel.IsTransactionComplete, Converter={StaticResource BoolToVisibilityConverter}, Mode=OneWay}" Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Margin="0,40,0,80" Text="{x:Bind ViewModel.FinalizeMessage, Mode=OneWay}" HorizontalAlignment="Center" FontWeight="Bold" FontSize="30"/>
+
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Button Content="Print" HorizontalAlignment="Center" Height="50" Width="100"/>
+                <Button Content="Gift Reciept" Grid.Column="1" HorizontalAlignment="Center" Height="50" Width="100"/>
+                <Button Content="Other" Grid.Column="2" HorizontalAlignment="Center" Height="50" Width="100"/>
+            </Grid>
+
+            <Grid Grid.Row="2" Margin="40">
+                <!-- Base TextBox -->
+                <TextBox x:Name="EmailTextBox"
+             PlaceholderText="Add a customer to email them a receipt"
+             Height="40"
+             VerticalContentAlignment="Center"
+             VerticalAlignment="Center"
+             HorizontalAlignment="Stretch"
+             Padding="40,0,0,0"/>
+                <!-- Add left padding so text doesn't overlap icon -->
+
+                <!-- Mail Icon placed inside -->
+                <FontIcon Glyph="&#xE119;"
+              FontFamily="Segoe MDL2 Assets"
+              VerticalAlignment="Center"
+              HorizontalAlignment="Left"
+              Margin="10,0,0,0"/>
+            </Grid>
+
+            <Button Content="Complete Sale" 
+                    Style="{StaticResource PayButtonStyle}" 
+                    Grid.Row="3" 
+                    HorizontalAlignment="Stretch" 
+                    Height="40" 
+                    Margin="40,0"
+                    Click="Complete_Click"/>
+
+        </Grid>
+    </Grid>
+</Page>

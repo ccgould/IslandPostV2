@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Application
+    x:Class="IslandPostPOS.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:IslandPostPOS.Converters"
+    xmlns:local="using:IslandPostPOS">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+                <!-- Other merged dictionaries here -->
+            </ResourceDictionary.MergedDictionaries>
+            
+            <!-- Other app resources here -->
+            <ResourceDictionary.ThemeDictionaries>
+
+                <!-- Light Theme -->
+                <ResourceDictionary x:Key="Light">
+                    <!-- Normal -->
+                    <SolidColorBrush x:Key="PayButtonBackground" Color="#0078D7"/>
+                    <SolidColorBrush x:Key="PayButtonForeground" Color="White"/>
+                    <SolidColorBrush x:Key="PayButtonBorderBrush" Color="#005A9E"/>
+
+                    <!-- Hover -->
+                    <SolidColorBrush x:Key="PayButtonHoverBackground" Color="#106EBE"/>
+                    <SolidColorBrush x:Key="PayButtonHoverForeground" Color="White"/>
+
+                    <!-- Pressed -->
+                    <SolidColorBrush x:Key="PayButtonPressedBackground" Color="#005A9E"/>
+                    <SolidColorBrush x:Key="PayButtonPressedForeground" Color="White"/>
+
+                    <!-- Disabled -->
+                    <SolidColorBrush x:Key="PayButtonDisabledBackground" Color="#C7E0F4"/>
+                    <SolidColorBrush x:Key="PayButtonDisabledForeground" Color="#A6A6A6"/>
+                </ResourceDictionary>
+
+                <!-- Dark Theme -->
+                <ResourceDictionary x:Key="Dark">
+                    <!-- Normal -->
+                    <SolidColorBrush x:Key="PayButtonBackground" Color="#0078D7"/>
+                    <SolidColorBrush x:Key="PayButtonForeground" Color="White"/>
+                    <SolidColorBrush x:Key="PayButtonBorderBrush" Color="#666666"/>
+
+                    <!-- Hover -->
+                    <SolidColorBrush x:Key="PayButtonHoverBackground" Color="#3AA0F3"/>
+                    <SolidColorBrush x:Key="PayButtonHoverForeground" Color="White"/>
+
+                    <!-- Pressed -->
+                    <SolidColorBrush x:Key="PayButtonPressedBackground" Color="#005A9E"/>
+                    <SolidColorBrush x:Key="PayButtonPressedForeground" Color="White"/>
+
+                    <!-- Disabled -->
+                    <SolidColorBrush x:Key="PayButtonDisabledBackground" Color="#2D2D2D"/>
+                    <SolidColorBrush x:Key="PayButtonDisabledForeground" Color="#777777"/>
+                </ResourceDictionary>
+
+            </ResourceDictionary.ThemeDictionaries>
+
+            <!-- Reusable PayButton Style -->
+            <Style x:Key="PayButtonStyle" TargetType="Button">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid>
+                                <Border x:Name="RootBorder"
+                                    Background="{ThemeResource PayButtonBackground}"
+                                    BorderBrush="{ThemeResource PayButtonBorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="{TemplateBinding CornerRadius}">
+                                    <ContentPresenter
+                                    Content="{TemplateBinding Content}"
+                                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                            Foreground="{ThemeResource PayButtonForeground}"
+                                            Margin="{TemplateBinding Padding}"/>
+                                </Border>
+
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+
+                                        <!-- Normal -->
+                                        <VisualState x:Name="Normal"/>
+
+                                        <!-- Hover -->
+                                        <VisualState x:Name="PointerOver">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootBorder"
+                                                                           Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame Value="{ThemeResource PayButtonHoverBackground}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+
+                                        <!-- Pressed -->
+                                        <VisualState x:Name="Pressed">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootBorder"
+                                                                           Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame Value="{ThemeResource PayButtonPressedBackground}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+
+                                        <!-- Disabled -->
+                                        <VisualState x:Name="Disabled">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootBorder"
+                                                                           Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame Value="{ThemeResource PayButtonDisabledBackground}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootBorder"
+                                                                           Storyboard.TargetProperty="BorderBrush">
+                                                    <DiscreteObjectKeyFrame Value="{ThemeResource PayButtonDisabledForeground}" />
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="FlatIconButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid x:Name="RootGrid" Background="{TemplateBinding Background}">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <FontIcon Glyph="{TemplateBinding Tag}" 
+                                  FontFamily="Segoe Fluent Icons"
+                                  Margin="0,0,8,0"/>
+                                    <ContentPresenter VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <!-- Visual States must be inside ControlTemplate -->
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal"/>
+                                        <VisualState x:Name="PointerOver">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootGrid"
+                                                                   Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="LightGray"/>
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="Pressed">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootGrid"
+                                                                   Storyboard.TargetProperty="Background">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="DarkGray"/>
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="Disabled">
+                                            <Storyboard>
+                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="RootGrid"
+                                                                   Storyboard.TargetProperty="Opacity">
+                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="0.5"/>
+                                                </ObjectAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <converters:DecimalToDoubleConverter x:Name="DecimalToDouble"/>
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityInvert" Invert="True"/>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

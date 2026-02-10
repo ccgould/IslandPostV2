@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "IslandPostPOS (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "IslandPostPOS (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
