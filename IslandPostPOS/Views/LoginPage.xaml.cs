@@ -47,7 +47,7 @@ namespace IslandPostPOS.Views
 
         private void OnLoggedIn(LoginResponseDTO dTO)
         {
-            var service = App.Services.GetRequiredService<ProductService>();
+            var service = App.Services.GetRequiredService<APIService>();
             Frame.Navigate(typeof(MainPage),service);
         }
 

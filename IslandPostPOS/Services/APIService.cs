@@ -17,18 +17,20 @@ using Windows.Storage;
 
 namespace IslandPostPOS.Services;
 
-public partial class ProductService : DataLoaderService
+public partial class APIService : DataLoaderService
 {
     [ObservableProperty] private ObservableCollection<ProductDTO> products;
+    [ObservableProperty] private ObservableCollection<ProductDTO> filteredProducts;
     [ObservableProperty] private ObservableCollection<CategoryDTO> categories;
     [ObservableProperty] private ObservableCollection<SaleDTO> salesHistory = new();
     [ObservableProperty] private CurrentUserInfo? currentUser;
 
     public CustomFiltering SqlFilterBehavior { get; }
 
-    public ProductService(IHttpClientFactory httpClientFactory) : base(httpClientFactory)
+    public APIService(IHttpClientFactory httpClientFactory) : base(httpClientFactory)
     {
         products = new();
+        filteredProducts = new();
         categories = new();
         SqlFilterBehavior = new CustomFiltering(this);
 
@@ -74,7 +76,7 @@ public partial class ProductService : DataLoaderService
     public async Task SearchAndUpdateProductsAsync(string search, CancellationToken cancellationToken = default)
     {
         var results = await SearchForProductsAsync(search, cancellationToken);
-        Products = new ObservableCollection<ProductDTO>(results);
+        FilteredProducts = new ObservableCollection<ProductDTO>(results);
     }
 
     public HttpClient GetClient() => (HttpClient)this.GetType()
@@ -348,4 +350,36 @@ public partial class ProductService : DataLoaderService
         Categories = new ObservableCollection<CategoryDTO>(categories ?? new List<CategoryDTO>());
         return categories ?? new List<CategoryDTO>();
     }
+
+    public async Task<List<ProductDTO>> GetAllProductsAsync(CancellationToken cancellationToken = default)
+    {
+        var client = GetClient();
+
+        var response = await client.GetAsync("api/Product/GetAllProducts", cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            return new List<ProductDTO>();
+
+        var products = await response.Content.ReadFromJsonAsync<List<ProductDTO>>(cancellationToken: cancellationToken);
+
+        // Update local collection so UI stays in sync
+        Products = new ObservableCollection<ProductDTO>(products ?? new List<ProductDTO>());
+
+        return products ?? new List<ProductDTO>();
+    }
+
+    public async Task LoadAllProductsAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            Products.Clear();
+            var items = await GetAllProductsAsync(cancellationToken);
+            Products = new ObservableCollection<ProductDTO>(items);
+        }
+        catch (Exception ex)
+        {
+            // Log or handle error gracefully
+            throw;
+        }
+    }
+
 }

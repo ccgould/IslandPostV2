@@ -10,11 +10,11 @@ namespace IslandPostPOS.Helpers
 {
     public class CustomFiltering : IAutoCompleteFilterBehavior
     {
-        private readonly ProductService productService;
+        private readonly APIService productService;
         private readonly DebounceDispatcher _debouncer = new();
 
 
-        public CustomFiltering(ProductService productService)
+        public CustomFiltering(APIService productService)
         {
             this.productService = productService;
         }

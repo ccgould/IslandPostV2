@@ -8,12 +8,12 @@ namespace IslandPostPOS.ViewModels
 {
     public partial class SalesHistoryViewModel : ObservableObject
     {
-        public ProductService Service { get; set; }
+        public APIService Service { get; set; }
         [ObservableProperty] private DateTimeOffset? startDate;
         [ObservableProperty] private DateTimeOffset? endDate;
         [ObservableProperty] private string? saleNumber;
 
-        public SalesHistoryViewModel(ProductService service)
+        public SalesHistoryViewModel(APIService service)
         {
             Service = service;
         }

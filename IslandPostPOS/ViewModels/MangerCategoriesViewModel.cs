@@ -10,9 +10,9 @@ namespace IslandPostPOS.ViewModels
     {
         [ObservableProperty] private bool isEditing;
         [ObservableProperty] private CategoryDTO currentCategory;
-        public ProductService service { get; set; }
+        public APIService service { get; set; }
 
-        public MangerCategoriesViewModel(ProductService service)
+        public MangerCategoriesViewModel(APIService service)
         {
             this.service = service;
         }

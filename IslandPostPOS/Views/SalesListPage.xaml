@@ -58,7 +58,7 @@
                 IsVerticalScrollChainingEnabled="False"
                 Padding="0,0,16,0">
                 <ItemsRepeater
-                    ItemsSource="{x:Bind ViewModel.Service.Products,Mode=OneWay}"
+                    ItemsSource="{x:Bind ViewModel.Service.FilteredProducts,Mode=OneWay}"
                     Layout="{StaticResource UniformGridLayout2}">
                     <ItemsRepeater.ItemTemplate>
                         <DataTemplate x:DataType="dtos:ProductDTO">
@@ -118,7 +118,7 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <HyperlinkButton Content="Retrieve Sale"/>
-                <HyperlinkButton Grid.Column="1" Content="Park Sale"/>
+                <HyperlinkButton x:Name="parkedSaleBtn"  Grid.Column="1" Content="Park Sale" Click="parkedSaleBtn_Click"/>
                 <DropDownButton  Grid.Column="2" Content="More Options" BorderThickness="0">
                     <DropDownButton.Flyout>
                         <MenuFlyout Placement="Bottom">

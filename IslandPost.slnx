@@ -12,4 +12,5 @@
     <Platform Solution="*|x86" Project="x86" />
     <Deploy />
   </Project>
+  <Project Path="UPC_SKU_Batcher/UPC_SKU_Batcher.csproj" Id="329a43b8-fc36-412f-91db-cadb73f75314" />
 </Solution>

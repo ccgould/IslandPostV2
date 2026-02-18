@@ -49,7 +49,7 @@ public partial class App : Application
         services.AddTransient<StorePageViewModel>();
         services.AddTransient<LoginPage>();
         services.AddTransient<LoginViewModel>();
-        services.AddSingleton<ProductService>();
+        services.AddSingleton<APIService>();
         services.AddTransient<SalesHistoryPage>();
         services.AddTransient<SalesHistoryViewModel>();
         services.AddTransient<ManagerCategoriesPage>();
@@ -80,7 +80,7 @@ public partial class App : Application
         rootFrame.Navigate(typeof(LoadingPage), vm);
 
         // Run initialization
-        var productService = Services.GetRequiredService<ProductService>();
+        var productService = Services.GetRequiredService<APIService>();
         await productService.InitializeAsync((status, progress) =>
         {
             vm.StatusMessage = status;

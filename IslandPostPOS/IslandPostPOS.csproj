@@ -22,6 +22,7 @@
     <None Remove="Assets\No-Image-Placeholder.png" />
     <None Remove="Assets\TheIslandPostLogo.png" />
     <None Remove="Views\Controls\PaginationControl.xaml" />
+    <None Remove="Views\Dialogs\ParkSaleDialog.xaml" />
     <None Remove="Views\EditCreateProductPage.xaml" />
     <None Remove="Views\HomePage.xaml" />
     <None Remove="Views\InventoryPage.xaml" />
@@ -63,13 +64,14 @@
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="CommunityToolkit.WinUI.Converters" Version="8.2.251219" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.3" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7463" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260101001" />
     <PackageReference Include="Polly" Version="8.6.5" />
-    <PackageReference Include="Syncfusion.Editors.WinUI" Version="32.1.25" />
-    <PackageReference Include="Syncfusion.Grid.WinUI" Version="32.1.25" />
+    <PackageReference Include="Syncfusion.Editors.WinUI" Version="32.2.4" />
+    <PackageReference Include="Syncfusion.Grid.WinUI" Version="32.2.4" />
+    <PackageReference Include="Syncfusion.Notifications.WinUI" Version="32.2.4" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
   </ItemGroup>
   <ItemGroup>
@@ -155,6 +157,11 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\Dialogs\ParkSaleDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
 
   <!--
     Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution
@@ -171,7 +178,7 @@
     <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
     <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
     <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
-    <AssemblyVersion>1.0.0.567</AssemblyVersion>
-    <FileVersion>1.0.0.567</FileVersion>
+    <AssemblyVersion>1.0.0.601</AssemblyVersion>
+    <FileVersion>1.0.0.601</FileVersion>
   </PropertyGroup>
 </Project>

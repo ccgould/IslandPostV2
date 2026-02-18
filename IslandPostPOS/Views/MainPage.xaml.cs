@@ -14,7 +14,7 @@ namespace IslandPostPOS.Views
     /// </summary>
     public sealed partial class MainPage : Page
     {
-        public ProductService Service { get; private set; }
+        public APIService Service { get; private set; }
 
         public MainPage()
         {
@@ -35,7 +35,7 @@ namespace IslandPostPOS.Views
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
-            if(e.Parameter is ProductService service)
+            if(e.Parameter is APIService service)
             {
                 Service = service;
             }

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 public partial class LoginViewModel : ObservableObject
 {
-    private readonly ProductService service;
+    private readonly APIService service;
 
     [ObservableProperty] private string username;
     [ObservableProperty] private string password;
@@ -19,7 +19,7 @@ public partial class LoginViewModel : ObservableObject
     public event Action? ClearPasswordRequested;
 
 
-    public LoginViewModel(ProductService service)
+    public LoginViewModel(APIService service)
     {
         this.service = service;
     }

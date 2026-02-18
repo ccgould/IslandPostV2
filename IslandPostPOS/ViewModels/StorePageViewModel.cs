@@ -46,9 +46,9 @@ public partial class StorePageViewModel : ObservableObject
     [ObservableProperty] private string finalizeMessage = "Payment Recieved";
     private readonly IDialogService dialogService;
 
-    public ProductService Service { get; private set; }
+    public APIService Service { get; private set; }
 
-    public StorePageViewModel(ProductService service, IDialogService dialogService)
+    public StorePageViewModel(APIService service, IDialogService dialogService)
     {
         saleItems = new();
         Service = service;
@@ -248,7 +248,7 @@ public partial class StorePageViewModel : ObservableObject
 
                 if (string.IsNullOrWhiteSpace(query))
                 {
-                    Service.Products.Clear();
+                    Service.FilteredProducts.Clear();
                 }
                 else
                 {
@@ -261,4 +261,8 @@ public partial class StorePageViewModel : ObservableObject
         );
     }
 
+    internal async Task ParkSaleAsync(string value)
+    {
+        
+    }
 }

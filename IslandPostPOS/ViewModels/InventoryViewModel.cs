@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using IslandPostPOS.Enumerators;
 using IslandPostPOS.Models;
 using IslandPostPOS.Services;
 using IslandPostPOS.Shared.DTOs;
@@ -21,22 +22,16 @@ namespace IslandPostPOS.ViewModels;
 
 public partial class InventoryViewModel : ObservableObject
 {
-    [ObservableProperty] private ObservableCollection<ProductDTO> pagedProducts;
-    [ObservableProperty] private ProductService productService;
+    [ObservableProperty] private APIService productService;
     [ObservableProperty] private ProductDTO product;
     [ObservableProperty] private BitmapImage? imageSource;
 
     [ObservableProperty] private string? imageFileName;
     [ObservableProperty] private CategoryDTO? category;
     [ObservableProperty] private bool isEditing;
-    [ObservableProperty] private string? searchText;
-    [ObservableProperty] private string? categoryText;
-    [ObservableProperty] private string? brandText;
-    [ObservableProperty] private string? statusText;
+    
     private ProductFilterDTO _filter = new ProductFilterDTO();
-
-
-    [ObservableProperty] private IncrementalList<ProductDTO> incrementalItemsSource;
+    [ObservableProperty] private bool isLoading;
 
     public List<OptionItem> ActiveOptions { get; } = new()
     {
@@ -53,7 +48,98 @@ public partial class InventoryViewModel : ObservableObject
     };
 
 
-    public InventoryViewModel(ProductService productService)
+
+
+    // Full product list
+
+    // Bound filter properties
+    [ObservableProperty]
+    private string searchText;
+
+    [ObservableProperty]
+    private string categoryText;
+
+    [ObservableProperty]
+    private string brandText;
+
+    // Expose all enum values for binding
+    public Array StatusOptions => Enum.GetValues(typeof(ProductStatus));
+
+
+    [ObservableProperty] private ProductStatus selectedStatus = ProductStatus.All;
+
+
+    // Command to refresh filter (optional if you want a Search button)
+    [RelayCommand]
+    private void ApplyFilters()
+    {
+        // Notify the view to refresh the DataGrid filter
+        FilterChanged?.Invoke();
+    }
+
+    // Predicate used by SfDataGrid.View.Filter
+    public bool FilterPredicate(object record)
+    {
+        if (record is not ProductDTO p) return false;
+
+        // Search text
+        if (!string.IsNullOrWhiteSpace(SearchText))
+        {
+            if (!(p.Description?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) == true
+                  || p.BarCode?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) == true))
+                return false;
+        }
+
+        // Category
+        if (!string.IsNullOrWhiteSpace(CategoryText) &&
+            !string.Equals(p.NameCategory, CategoryText, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        // Brand
+        if (!string.IsNullOrWhiteSpace(BrandText) &&
+            !string.Equals(p.Brand, BrandText, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        // Status filter
+        if (SelectedStatus == ProductStatus.Active && p.IsActive != 1)
+            return false;
+
+        if (SelectedStatus == ProductStatus.Inactive && p.IsActive != 0)
+            return false;
+
+        // If All, no filter applied
+
+
+        return true;
+    }
+
+    // Reset method
+    [RelayCommand]
+    public void ResetFilters()
+    {
+        SearchText = string.Empty;
+        CategoryText = string.Empty;
+        BrandText = string.Empty;
+        SelectedStatus = ProductStatus.All; // reset to default
+        
+        // Notify the view to refresh the filter
+        FilterChanged?.Invoke();
+    }
+
+
+    // Event to notify the view when filters change
+    public event Action FilterChanged;
+
+    // Auto-trigger filter refresh when properties change
+    partial void OnSearchTextChanged(string value) => FilterChanged?.Invoke();
+    partial void OnCategoryTextChanged(string value) => FilterChanged?.Invoke();
+    partial void OnBrandTextChanged(string value) => FilterChanged?.Invoke();
+    partial void OnCategoryChanged(CategoryDTO? value) => FilterChanged?.Invoke();
+
+    partial void OnSelectedStatusChanged(ProductStatus value) => FilterChanged?.Invoke();
+
+
+    public InventoryViewModel(APIService productService)
     {
         this.productService = productService;
         // Initialize with first page
@@ -63,22 +149,7 @@ public partial class InventoryViewModel : ObservableObject
 
     public async void ResetProducts(ProductFilterDTO? filter = null)
     {
-        _filter = filter ?? new ProductFilterDTO();
-
-        // Fetch first page to know total count
-        var firstPage = await ProductService.GetProductsPagedAsync(1, 20, _filter, CancellationToken.None);
-
-        IncrementalItemsSource = new IncrementalList<ProductDTO>(LoadMoreItems)
-        {
-            MaxItemCount = firstPage?.TotalCount ?? 0
-        };
-
-        // Optionally preload the first page so the grid shows something immediately
-        if (firstPage?.Items != null)
-        {
-            foreach (var item in firstPage.Items)
-                IncrementalItemsSource.Add(item);
-        }
+        
     }
 
 
@@ -211,11 +282,12 @@ public partial class InventoryViewModel : ObservableObject
     {
         IsEditing = false;
     }
-
-    public void Dispose()
+     
+    internal async Task LoadProducts()
     {
-        if (IncrementalItemsSource != null)
-            IncrementalItemsSource.Clear();
+        IsLoading = true;
+        await ProductService.LoadAllProductsAsync();
+        IsLoading = false;
     }
 }
 public class OptionItem

@@ -9,10 +9,12 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:dataGrid="using:Syncfusion.UI.Xaml.DataGrid"
+    xmlns:notification="using:Syncfusion.UI.Xaml.Notifications"
     xmlns:converters="using:IslandPostPOS.Converters"
     xmlns:winConverters="using:CommunityToolkit.WinUI.Converters"
     xmlns:controls="using:IslandPostPOS.Views.Controls"
     xmlns:dto="using:IslandPostPOS.Shared.DTOs"
+    xmlns:enum="using:IslandPostPOS.Enumerators"
     mc:Ignorable="d">
 
     <Page.Resources>
@@ -61,11 +63,11 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Orientation="Vertical" Grid.ColumnSpan="2">
                             <TextBlock Text="Search for product" FontWeight="Bold" Margin="5"/>
-                            <TextBox PlaceholderText="Enter name or SKU" x:Name="searchBar" Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBox PlaceholderText="Enter name or SKU" x:Name="searchBar" Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  />
                         </StackPanel>
                         <StackPanel Orientation="Vertical" Grid.Column="2">
                             <TextBlock Text="Product Category" FontWeight="Bold" Margin="5"/>
-                            <ComboBox x:Name="categoryCmb" SelectedItem="{x:Bind ViewModel.CategoryText, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Select a category" HorizontalAlignment="Stretch"/>
+                            <ComboBox x:Name="categoryCmb" ItemsSource="{x:Bind ViewModel.ProductService.Categories, Mode=OneWay}"  SelectedItem="{x:Bind ViewModel.Category, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Select a category" HorizontalAlignment="Stretch"/>
                         </StackPanel>
                         <StackPanel Orientation="Vertical" Grid.Row="1" Grid.Column="0">
                             <TextBlock Text="Brand" FontWeight="Bold" Margin="5"/>
@@ -73,15 +75,19 @@
                         </StackPanel>
                         <StackPanel Orientation="Vertical" Grid.Row="1" Grid.Column="1">
                             <TextBlock Text="Status" FontWeight="Bold" Margin="5"/>
-                            <ComboBox x:Name="statusCmb"  PlaceholderText="All Statuses" SelectedItem="{x:Bind ViewModel.StatusText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Stretch"/>
+                            <ComboBox x:Name="statusCmb"  
+                                      PlaceholderText="All Statuses"
+                                      ItemsSource="{x:Bind ViewModel.StatusOptions}"
+                                      SelectedItem="{x:Bind ViewModel.SelectedStatus, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      HorizontalAlignment="Stretch">
 
-
+                            </ComboBox>
                         </StackPanel>
                         <StackPanel Orientation="Vertical" Grid.Row="1" Grid.Column="2">
-                            <TextBlock Text="Supplier" FontWeight="Bold" Margin="5"/>
-                            <ComboBox PlaceholderText="Select a supplier" HorizontalAlignment="Stretch"/>
+                            <TextBlock Text="Is Active" FontWeight="Bold" Margin="5"/>
+                            <ComboBox x:Name="stateCmb" PlaceholderText="Select a State" HorizontalAlignment="Stretch"/>
                         </StackPanel>
-                        <Button Click="Button_Click" Content="Search" Grid.Row="2" Grid.Column="2" HorizontalAlignment="Right" Width="150" Style="{StaticResource PayButtonStyle}" Margin="0,20,0,0"/>
+                        <Button Click="Button_Click" Content="Clear" Command="{x:Bind ViewModel.ResetFiltersCommand}" Grid.Row="2" Grid.Column="2" HorizontalAlignment="Right" Width="150" Style="{StaticResource PayButtonStyle}" Margin="0,20,0,0"/>
                     </Grid>
                     <!--Datagrid-->
                     <Grid Grid.Row="1">
@@ -91,12 +97,7 @@
                         </Grid.RowDefinitions>
                         <dataGrid:SfDataGrid x:Name="dataGrid"
                                      SelectionMode="None"
-                                     AllowGrouping="True"
-                                     ItemsSource="{x:Bind ViewModel.IncrementalItemsSource,Mode=OneWay}"
-                                     EnableDataVirtualization="True"
-                                     AllowSorting="True"
-                                     AllowFiltering="True"
-                                     ShowGroupDropArea="True"
+                                     ItemsSource="{x:Bind ViewModel.ProductService.Products,Mode=OneWay}"
                                      Height="300"
                                      DataContext="{x:Bind ViewModel}"
                                      AutoGenerateColumns="False">
@@ -139,9 +140,13 @@
                                         </DataTemplate>
                                     </dataGrid:GridTemplateColumn.CellTemplate>
                                 </dataGrid:GridTemplateColumn>
-
                             </dataGrid:SfDataGrid.Columns>
                         </dataGrid:SfDataGrid>
+                        <notification:SfBusyIndicator 
+                            IsActive="{x:Bind ViewModel.IsLoading, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"
+                            AnimationType="DottedCircle"
+                            BusyContent="Loading">
+                        </notification:SfBusyIndicator>
                     </Grid>
                 </Grid>
             </ScrollViewer>
