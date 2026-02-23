@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using IslandPostPOS.Shared.Enumerators;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace IslandPostApi.Models;
@@ -21,6 +22,7 @@ public partial class Sale
     public decimal? TotalTaxes { get; set; }
     public decimal? Total { get; set; }
     public DateTime? RegistrationDate { get; set; }
+    public string? Note { get; set; }
 
     public virtual TypeDocumentSale? IdTypeDocumentSaleNavigation { get; set; }
 
@@ -29,4 +31,7 @@ public partial class Sale
     public virtual ICollection<DetailSale> DetailSales { get; set; }
 
     public string PaymentMethod { get; set; }
+
+    public SaleStatus Status { get; set; }
+
 }

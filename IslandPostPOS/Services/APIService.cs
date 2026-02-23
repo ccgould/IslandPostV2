@@ -23,6 +23,7 @@ public partial class APIService : DataLoaderService
     [ObservableProperty] private ObservableCollection<ProductDTO> filteredProducts;
     [ObservableProperty] private ObservableCollection<CategoryDTO> categories;
     [ObservableProperty] private ObservableCollection<SaleDTO> salesHistory = new();
+    [ObservableProperty] private ObservableCollection<SaleDTO> parkedSales = new();
     [ObservableProperty] private CurrentUserInfo? currentUser;
 
     public CustomFiltering SqlFilterBehavior { get; }
@@ -237,7 +238,7 @@ public partial class APIService : DataLoaderService
     {
         var handler = new JwtSecurityTokenHandler();
         var jwt = handler.ReadJwtToken(token);
-        var id = jwt.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
+        var id = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
         var role = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
         var email = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
         var name = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
@@ -382,4 +383,30 @@ public partial class APIService : DataLoaderService
         }
     }
 
+    public async Task<SaleDTO?> ParkSaleAsync(SaleDTO sale, CancellationToken cancellationToken = default)
+    {
+        var client = GetClient();
+        var response = await client.PostAsJsonAsync("api/Sales/ParkSale", sale, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<SaleDTO>(cancellationToken: cancellationToken);
+    }
+
+    public async Task<SaleDTO?> FinalizeSaleAsync(int saleId, CancellationToken cancellationToken = default)
+    {
+        var client = GetClient();
+        var response = await client.PostAsync($"api/Sales/FinalizeSale/{saleId}", null, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<SaleDTO>(cancellationToken: cancellationToken);
+    }
+
+    public async Task<SaleDTO?> CancelSaleAsync(int saleId, CancellationToken cancellationToken = default)
+    {
+        var client = GetClient();
+        var response = await client.PostAsync($"api/Sales/CancelSale/{saleId}", null, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<SaleDTO>(cancellationToken: cancellationToken);
+    }
 }

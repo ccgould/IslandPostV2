@@ -1,6 +1,7 @@
 ﻿namespace IslandPostPOS.Models;
 
 using CommunityToolkit.Mvvm.ComponentModel;
+using IslandPostPOS.Shared.Enumerators;
 using System;
 
 public partial class Sale : ObservableObject
@@ -43,6 +44,10 @@ public partial class Sale : ObservableObject
 
     [ObservableProperty]
     private int idDiscount;
+
+    [ObservableProperty]
+    private SaleStatus status;
+
 
     // Whenever Subtotal or TotalTaxes changes, recalc Total
     partial void OnSubtotalChanged(decimal value)

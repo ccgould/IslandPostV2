@@ -2,8 +2,10 @@
 using IslandPostApi.Data;
 using IslandPostApi.Models;
 using IslandPostPOS.Shared.DTOs;
+using IslandPostPOS.Shared.Enumerators;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
+using System.Net.NetworkInformation;
 
 namespace IslandPostApi.Services
 {
@@ -43,34 +45,20 @@ namespace IslandPostApi.Services
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                foreach (DetailSale dv in entity.DetailSales)
+                if (entity.Status == SaleStatus.Completed)
                 {
-                    var product = await _context.Products.FirstAsync(p => p.IdProduct == dv.IdProduct);
-                    product.Quantity -= dv.Quantity;
-                    _context.Products.Update(product);
+                    await FinalizeSaleCoreAsync(entity);
                 }
-                await _context.SaveChangesAsync();
-
-                var correlative = await _context.CorrelativeNumbers.FirstAsync(n => n.Management == "Sale");
-                correlative.LastNumber += 1;
-                correlative.DateUpdate = DateTime.Now;
-
-                _context.CorrelativeNumbers.Update(correlative);
-                await _context.SaveChangesAsync();
-
-                string ceros = string.Concat(Enumerable.Repeat("0", correlative.QuantityDigits.Value));
-                string saleNumber = ceros + correlative.LastNumber.ToString();
-                saleNumber = saleNumber.Substring(saleNumber.Length - correlative.QuantityDigits.Value, correlative.QuantityDigits.Value);
-
-                entity.SaleNumber = saleNumber;
-                entity.RegistrationDate = DateTime.UtcNow;
+                else
+                {
+                    entity.RegistrationDate = DateTime.UtcNow;
+                }
 
                 await _context.Sales.AddAsync(entity);
                 await _context.SaveChangesAsync();
 
                 await transaction.CommitAsync();
 
-                // reload with user navigation so Users property is populated
                 var savedSale = await _context.Sales
                     .Include(s => s.DetailSales)
                     .Include(s => s.IdUsersNavigation)
@@ -85,7 +73,37 @@ namespace IslandPostApi.Services
             }
         }
 
-        public async Task<List<SaleDTO>> SaleHistoryAsync(string? saleNumber, string? startDate, string? endDate)
+        public async Task<SaleDTO> FinalizeAsync(int saleId)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var sale = await _context.Sales
+                    .Include(s => s.DetailSales)
+                    .FirstOrDefaultAsync(s => s.IdSale == saleId);
+
+                if (sale == null)
+                    throw new Exception("Sale not found.");
+                if (sale.Status != SaleStatus.Parked)
+                    throw new Exception("Only parked sales can be finalized.");
+
+                await FinalizeSaleCoreAsync(sale);
+
+                _context.Sales.Update(sale);
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                return MapSaleToDto(sale);
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        public async Task<List<SaleDTO>> SaleHistoryAsync(string? saleNumber, string? startDate, string? endDate, SaleStatus? status = null)
         {
             var query = _context.Sales
                 .Include(tdv => tdv.IdTypeDocumentSaleNavigation)
@@ -107,6 +125,9 @@ namespace IslandPostApi.Services
             {
                 query = query.Where(v => v.SaleNumber == saleNumber);
             }
+            else if (status.HasValue)
+                query = query.Where(v => v.Status == status.Value);
+
 
             var sales = await query.ToListAsync();
             return sales.Select(MapSaleToDto).ToList();
@@ -157,6 +178,8 @@ namespace IslandPostApi.Services
                 RegistrationDate = s.RegistrationDate,
                 PaymentMethod = s.PaymentMethod,
                 Users = s.IdUsersNavigation?.Name, // 👈 now included everywhere
+                Status = s.Status, // 👈 include lifecycle state
+                Note = s.Note, // 👈 include note
                 DetailSales = s.DetailSales?.Select(d => new DetailSaleDTO
                 {
                     IdDetailSale = d.IdDetailSale,
@@ -170,6 +193,55 @@ namespace IslandPostApi.Services
                     Total = d.Total
                 }).ToList()
             };
+        }
+
+        public async Task<SaleDTO> CancelAsync(int saleId)
+        {
+            var sale = await _context.Sales
+                .Include(s => s.DetailSales)
+                .FirstOrDefaultAsync(s => s.IdSale == saleId);
+
+            if (sale == null)
+                throw new Exception("Sale not found.");
+
+            if (sale.Status != SaleStatus.Parked)
+                throw new Exception("Only parked sales can be cancelled.");
+
+            sale.Status = SaleStatus.Cancelled;
+            sale.RegistrationDate = DateTime.UtcNow;
+
+            _context.Sales.Update(sale);
+            await _context.SaveChangesAsync();
+
+            return MapSaleToDto(sale);
+        }
+
+        private async Task FinalizeSaleCoreAsync(Sale sale)
+        {
+            // Deduct inventory
+            foreach (DetailSale dv in sale.DetailSales)
+            {
+                var product = await _context.Products.FirstAsync(p => p.IdProduct == dv.IdProduct);
+                product.Quantity -= dv.Quantity;
+                _context.Products.Update(product);
+            }
+            await _context.SaveChangesAsync();
+
+            // Generate sale number
+            var correlative = await _context.CorrelativeNumbers.FirstAsync(n => n.Management == "Sale");
+            correlative.LastNumber += 1;
+            correlative.DateUpdate = DateTime.Now;
+
+            _context.CorrelativeNumbers.Update(correlative);
+            await _context.SaveChangesAsync();
+
+            string ceros = string.Concat(Enumerable.Repeat("0", correlative.QuantityDigits.Value));
+            string saleNumber = ceros + correlative.LastNumber.ToString();
+            saleNumber = saleNumber.Substring(saleNumber.Length - correlative.QuantityDigits.Value, correlative.QuantityDigits.Value);
+
+            sale.SaleNumber = saleNumber;
+            sale.Status = SaleStatus.Completed;
+            sale.RegistrationDate = DateTime.UtcNow;
         }
     }
 }

@@ -17,6 +17,7 @@
     <Page.Resources>
         <BitmapImage x:Key="DefaultProductImage" UriSource="ms-appx:///Assets/No-Image-Placeholder.png"/>
         <converters:ByteArrayToImageConverter x:Key="ByteArrayToImage"/>
+        <converters:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter"/>
         <UniformGridLayout x:Key="UniformGridLayout2" MinItemWidth="150" MinItemHeight="150" MinRowSpacing="12" MinColumnSpacing="12"/>
     </Page.Resources>
 
@@ -117,8 +118,23 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <HyperlinkButton Content="Retrieve Sale"/>
-                <HyperlinkButton x:Name="parkedSaleBtn"  Grid.Column="1" Content="Park Sale" Click="parkedSaleBtn_Click"/>
+                <DropDownButton Content="Retreieve Sale" BorderThickness="0"  IsEnabled="{x:Bind ViewModel.Service.ParkedSales.Count, Mode=OneWay, Converter={StaticResource GreaterThanZeroConverter}}">
+                    <DropDownButton.Flyout>
+                        <Flyout Placement="Bottom">
+                            <ItemsRepeater ItemsSource="{x:Bind ViewModel.Service.ParkedSales, Mode=OneWay}">
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate x:DataType="dtos:SaleDTO">
+                                        <Button Content="{x:Bind Note}"
+                                        />
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+
+                        </Flyout>
+                    </DropDownButton.Flyout>
+                </DropDownButton>
+
+                <HyperlinkButton x:Name="parkedSaleBtn"  Grid.Column="1" Content="Park Sale" Click="parkedSaleBtn_Click" IsEnabled="{x:Bind ViewModel.SaleItems.Count, Mode=OneWay, Converter={StaticResource GreaterThanZeroConverter}}"/>
                 <DropDownButton  Grid.Column="2" Content="More Options" BorderThickness="0">
                     <DropDownButton.Flyout>
                         <MenuFlyout Placement="Bottom">

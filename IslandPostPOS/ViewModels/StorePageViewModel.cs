@@ -263,6 +263,32 @@ public partial class StorePageViewModel : ObservableObject
 
     internal async Task ParkSaleAsync(string value)
     {
-        
+        var saleDto = new SaleDTO
+        {
+            Subtotal = SubTotal,
+            TotalTaxes = TotalTax,
+            Total = SaleTotal,
+            IdUsers = Service.CurrentUser?.IdUsers,
+            Note = value,
+            RegistrationDate = DateTime.UtcNow,
+            PaymentMethod = string.Join(", ", Transactions.Select(t => t.PaymentMethodName)),
+            DetailSales = SaleItems.Select(item => new DetailSaleDTO
+            {
+                IdProduct = item.IdProduct,
+                Quantity = item.Quantity,
+                Price = item.Price,
+                Total = item.Total
+            }).ToList()
+        };
+
+        Clear();
+
+        var parkedSale = await Service.ParkSaleAsync(saleDto);
+
+        if (parkedSale is not null)
+        {
+            // Show notification
+            Service.ParkedSales.Add(parkedSale);
+        }
     }
 }

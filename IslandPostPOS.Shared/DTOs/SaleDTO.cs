@@ -1,4 +1,5 @@
-﻿using System;
+﻿using IslandPostPOS.Shared.Enumerators;
+using System;
 using System.Collections.Generic;
 
 namespace IslandPostPOS.Shared.DTOs
@@ -21,6 +22,8 @@ namespace IslandPostPOS.Shared.DTOs
         // If you want to expose child details in the DTO:
         public List<DetailSaleDTO>? DetailSales { get; set; }
         public string FormatAmount(decimal? amount) => amount?.ToString("C") ?? "NA";
+        public SaleStatus Status { get; set; }
+        public string? Note { get; set; }
 
     }
 }

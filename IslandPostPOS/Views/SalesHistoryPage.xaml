@@ -72,6 +72,7 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
 
                                             <!-- Date -->
@@ -94,7 +95,7 @@
                                             <TextBlock Text="{x:Bind SaleNumber, Mode=OneWay}" Grid.Column="4" VerticalAlignment="Center"/>
 
                                             <!-- Status -->
-                                            <!--<TextBlock Text="{x:Bind Status, Mode=OneWay}" Grid.Column="4" Foreground="{x:Bind StatusColor}" />-->
+                                            <TextBlock Text="{x:Bind Status, Mode=OneWay}" Grid.Column="5" />
                                         </Grid>
                                     </controls:Expander.Header>
                                     <Grid Padding="10">
@@ -141,7 +142,7 @@
                                                     VerticalAlignment="Stretch"
                                                     HorizontalAlignment="Stretch"
                                                     TextWrapping="WrapWholeWords"
-                                                    Text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer viverra erat est, a ullamcorper urna dapibus ac. Suspendisse pulvinar posuere aliquet. Ut ac orci laoreet, ultricies elit sed, condimentum enim. Ut velit leo, lacinia vulputate ex vel, ornare porttitor mi. Sed id mi quis velit ullamcorper mollis. Sed nec urna sed arcu malesuada euismod. Nullam in elementum mauris. Duis sit amet ullamcorper ipsum. Aenean in odio fermentum, mollis dui placerat, mollis mi. Sed lectus orci, interdum aliquam."/>
+                                                    Text="{x:Bind Note}"/>
                                             </Grid>
 
                                             <!--Sale Grid-->

@@ -1,6 +1,7 @@
 ﻿using IslandPostApi.Contracts;
 using IslandPostApi.Models;
 using IslandPostPOS.Shared.DTOs;
+using IslandPostPOS.Shared.Enumerators;
 using Microsoft.AspNetCore.Mvc;
 
 namespace IslandPostApi.Controllers
@@ -68,6 +69,42 @@ namespace IslandPostApi.Controllers
                 return NotFound($"Sale with number {saleNumber} not found.");
 
             return Ok(sale);
+        }
+
+        [HttpPost("ParkSale")]
+        public async Task<ActionResult<SaleDTO>> ParkSale([FromBody] Sale model)
+        {
+            model.Status = SaleStatus.Parked;
+            var savedSale = await _service.RegisterAsync(model);
+            return Ok(savedSale);
+        }
+
+        [HttpPost("FinalizeSale/{id}")]
+        public async Task<ActionResult<SaleDTO>> FinalizeSale(int id)
+        {
+            try
+            {
+                var finalizedSale = await _service.FinalizeAsync(id);
+                return Ok(finalizedSale);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpPost("CancelSale/{id}")]
+        public async Task<ActionResult<SaleDTO>> CancelSale(int id)
+        {
+            try
+            {
+                var cancelledSale = await _service.CancelAsync(id);
+                return Ok(cancelledSale);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
     }
 }
