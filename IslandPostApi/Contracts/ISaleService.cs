@@ -14,4 +14,8 @@ public interface ISaleService
     Task<List<SaleReportDTO>> ReportAsync(string StarDate, string EndDate);
     Task<SaleDTO> CancelAsync(int saleId);
     Task<SaleDTO> FinalizeAsync(int saleId);
+    Task<SaleDTO?> GetByIdAsync(int id);
+    Task<List<SaleDTO>> GetParkedAsync();
+    Task<SaleDTO> RetrieveAsync(int saleId);
+    Task<SaleDTO> ParkAsync(int saleId);
 }

@@ -24,7 +24,6 @@ namespace IslandPostPOS.Shared.DTOs
         public string FormatAmount(decimal? amount) => amount?.ToString("C") ?? "NA";
         public SaleStatus Status { get; set; }
         public string? Note { get; set; }
-
     }
 }
 

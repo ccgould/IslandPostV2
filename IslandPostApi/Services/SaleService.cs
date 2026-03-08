@@ -1,11 +1,11 @@
 ﻿using IslandPostApi.Contracts;
 using IslandPostApi.Data;
+using IslandPostApi.Mapper;
 using IslandPostApi.Models;
 using IslandPostPOS.Shared.DTOs;
 using IslandPostPOS.Shared.Enumerators;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
-using System.Net.NetworkInformation;
 
 namespace IslandPostApi.Services
 {
@@ -22,22 +22,26 @@ namespace IslandPostApi.Services
         {
             var sale = await _context.Sales
                 .Include(s => s.DetailSales)
+                    .ThenInclude(d => d.Product)
+                        .ThenInclude(p => p.IdCategoryNavigation)
                 .Include(s => s.IdUsersNavigation)
                 .Include(s => s.IdTypeDocumentSaleNavigation)
                 .FirstOrDefaultAsync(s => s.SaleNumber == saleNumber);
 
-            return sale == null ? null : MapSaleToDto(sale);
+            return sale == null ? null : SaleMapper.ToDto(sale);
         }
 
         public async Task<List<SaleDTO>> GetAllSalesAsync()
         {
             var sales = await _context.Sales
                 .Include(p => p.DetailSales)
+                    .ThenInclude(d => d.Product)
+                        .ThenInclude(p => p.IdCategoryNavigation)
                 .Include(p => p.IdTypeDocumentSaleNavigation)
                 .Include(p => p.IdUsersNavigation)
                 .ToListAsync();
 
-            return sales.Select(MapSaleToDto).ToList();
+            return sales.Select(SaleMapper.ToDto).ToList();
         }
 
         public async Task<SaleDTO> RegisterAsync(Sale entity)
@@ -61,10 +65,12 @@ namespace IslandPostApi.Services
 
                 var savedSale = await _context.Sales
                     .Include(s => s.DetailSales)
+                        .ThenInclude(d => d.Product)
+                            .ThenInclude(p => p.IdCategoryNavigation)
                     .Include(s => s.IdUsersNavigation)
                     .FirstAsync(s => s.IdSale == entity.IdSale);
 
-                return MapSaleToDto(savedSale);
+                return SaleMapper.ToDto(savedSale);
             }
             catch
             {
@@ -80,12 +86,14 @@ namespace IslandPostApi.Services
             {
                 var sale = await _context.Sales
                     .Include(s => s.DetailSales)
+                        .ThenInclude(d => d.Product)
+                            .ThenInclude(p => p.IdCategoryNavigation)
                     .FirstOrDefaultAsync(s => s.IdSale == saleId);
 
                 if (sale == null)
                     throw new Exception("Sale not found.");
-                if (sale.Status != SaleStatus.Parked)
-                    throw new Exception("Only parked sales can be finalized.");
+
+                SaleStateMachine.Complete(sale);
 
                 await FinalizeSaleCoreAsync(sale);
 
@@ -94,7 +102,7 @@ namespace IslandPostApi.Services
 
                 await transaction.CommitAsync();
 
-                return MapSaleToDto(sale);
+                return SaleMapper.ToDto(sale);
             }
             catch
             {
@@ -109,6 +117,8 @@ namespace IslandPostApi.Services
                 .Include(tdv => tdv.IdTypeDocumentSaleNavigation)
                 .Include(u => u.IdUsersNavigation)
                 .Include(dv => dv.DetailSales)
+                    .ThenInclude(d => d.Product)
+                        .ThenInclude(p => p.IdCategoryNavigation)
                 .AsQueryable();
 
             if (!string.IsNullOrEmpty(startDate) && !string.IsNullOrEmpty(endDate))
@@ -128,9 +138,8 @@ namespace IslandPostApi.Services
             else if (status.HasValue)
                 query = query.Where(v => v.Status == status.Value);
 
-
             var sales = await query.ToListAsync();
-            return sales.Select(MapSaleToDto).ToList();
+            return sales.Select(SaleMapper.ToDto).ToList();
         }
 
         public async Task<List<SaleReportDTO>> ReportAsync(string startDate, string endDate)
@@ -161,69 +170,43 @@ namespace IslandPostApi.Services
                 .ToListAsync();
         }
 
-        // Centralized mapping helper
-        private static SaleDTO MapSaleToDto(Sale s)
-        {
-            return new SaleDTO
-            {
-                IdSale = s.IdSale,
-                SaleNumber = s.SaleNumber,
-                IdTypeDocumentSale = s.IdTypeDocumentSale,
-                IdUsers = s.IdUsers,
-                CustomerDocument = s.CustomerDocument,
-                ClientName = s.ClientName,
-                Subtotal = s.Subtotal,
-                TotalTaxes = s.TotalTaxes,
-                Total = s.Total,
-                RegistrationDate = s.RegistrationDate,
-                PaymentMethod = s.PaymentMethod,
-                Users = s.IdUsersNavigation?.Name, // 👈 now included everywhere
-                Status = s.Status, // 👈 include lifecycle state
-                Note = s.Note, // 👈 include note
-                DetailSales = s.DetailSales?.Select(d => new DetailSaleDTO
-                {
-                    IdDetailSale = d.IdDetailSale,
-                    IdSale = d.IdSale,
-                    IdProduct = d.IdProduct,
-                    BrandProduct = d.BrandProduct,
-                    DescriptionProduct = d.DescriptionProduct,
-                    CategoryProducty = d.CategoryProducty,
-                    Quantity = d.Quantity,
-                    Price = d.Price,
-                    Total = d.Total
-                }).ToList()
-            };
-        }
-
         public async Task<SaleDTO> CancelAsync(int saleId)
         {
             var sale = await _context.Sales
                 .Include(s => s.DetailSales)
+                    .ThenInclude(d => d.Product)
+                        .ThenInclude(p => p.IdCategoryNavigation)
                 .FirstOrDefaultAsync(s => s.IdSale == saleId);
 
             if (sale == null)
                 throw new Exception("Sale not found.");
 
-            if (sale.Status != SaleStatus.Parked)
-                throw new Exception("Only parked sales can be cancelled.");
+            SaleStateMachine.Cancel(sale);
 
-            sale.Status = SaleStatus.Cancelled;
             sale.RegistrationDate = DateTime.UtcNow;
 
             _context.Sales.Update(sale);
             await _context.SaveChangesAsync();
 
-            return MapSaleToDto(sale);
+            return SaleMapper.ToDto(sale);
         }
 
         private async Task FinalizeSaleCoreAsync(Sale sale)
         {
-            // Deduct inventory
+            // Deduct inventory and snapshot product info
             foreach (DetailSale dv in sale.DetailSales)
             {
-                var product = await _context.Products.FirstAsync(p => p.IdProduct == dv.IdProduct);
+                var product = await _context.Products
+                    .Include(p => p.IdCategoryNavigation)
+                    .FirstAsync(p => p.IdProduct == dv.IdProduct);
+
                 product.Quantity -= dv.Quantity;
                 _context.Products.Update(product);
+
+                // Snapshot product info
+                dv.DescriptionProduct = product.Description;
+                dv.BrandProduct = product.Brand;
+                dv.CategoryProducty = product.IdCategoryNavigation?.Description;
             }
             await _context.SaveChangesAsync();
 
@@ -242,6 +225,92 @@ namespace IslandPostApi.Services
             sale.SaleNumber = saleNumber;
             sale.Status = SaleStatus.Completed;
             sale.RegistrationDate = DateTime.UtcNow;
+        }
+
+        public async Task<SaleDTO?> GetByIdAsync(int id)
+        {
+            var sale = await _context.Sales
+                .Include(s => s.DetailSales)
+                    .ThenInclude(d => d.Product)
+                        .ThenInclude(p => p.IdCategoryNavigation)
+                .FirstOrDefaultAsync(s => s.IdSale == id);
+
+            return sale == null ? null : SaleMapper.ToDto(sale);
+        }
+
+        public async Task<List<SaleDTO>> GetParkedAsync()
+        {
+            var sales = await _context.Sales
+                .Include(s => s.DetailSales)
+                    .ThenInclude(d => d.Product)
+                        .ThenInclude(p => p.IdCategoryNavigation)
+                .Where(s => s.Status == SaleStatus.Parked)
+                .ToListAsync();
+
+            return sales.Select(SaleMapper.ToDto).ToList();
+        }
+
+        public async Task<SaleDTO> RetrieveAsync(int saleId)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var sale = await _context.Sales
+                    .Include(s => s.DetailSales)
+                        .ThenInclude(d => d.Product)
+                            .ThenInclude(p => p.IdCategoryNavigation)
+                    .FirstOrDefaultAsync(s => s.IdSale == saleId);
+
+                if (sale == null)
+                    throw new Exception("Sale not found.");
+
+                SaleStateMachine.Retrieve(sale);
+
+                _context.Sales.Update(sale);
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                return SaleMapper.ToDto(sale);
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        public async Task<SaleDTO> ParkAsync(int saleId)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var sale = await _context.Sales
+                    .Include(s => s.DetailSales)
+                        .ThenInclude(d => d.Product)
+                            .ThenInclude(p => p.IdCategoryNavigation)
+                    .FirstOrDefaultAsync(s => s.IdSale == saleId);
+
+                if (sale == null)
+                    throw new Exception("Sale not found.");
+
+                // enforce valid transition
+                SaleStateMachine.Park(sale);
+
+                sale.RegistrationDate = DateTime.UtcNow;
+
+                _context.Sales.Update(sale);
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                return SaleMapper.ToDto(sale);
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
     }
 }

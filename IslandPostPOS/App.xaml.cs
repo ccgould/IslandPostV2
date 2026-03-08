@@ -3,10 +3,13 @@ using IslandPostPOS.Services.Contracts;
 using IslandPostPOS.ViewModels;
 using IslandPostPOS.Views;
 using IslandPostPOS.Windows;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Syncfusion.Licensing;
 using System;
+using System.IO;
 using System.Threading.Tasks;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -37,6 +40,16 @@ public partial class App : Application
     /// <param name="args">Details about the launch request and process.</param>
     protected async override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
+
+        // Build configuration
+        var config = new ConfigurationBuilder() 
+            .SetBasePath(AppContext.BaseDirectory) 
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true) 
+            .Build();
+
+        string licenseKey = config["SyncfusionLicenseKey"];
+        SyncfusionLicenseProvider.RegisterLicense(licenseKey);
+
         // Configure DI
         var services = new ServiceCollection();
 

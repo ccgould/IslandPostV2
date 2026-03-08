@@ -108,6 +108,13 @@ namespace IslandPostApi.Data
                     .WithMany(p => p.DetailSales)
                     .HasForeignKey(d => d.IdSale)
                     .HasConstraintName("FK__DetailSal__idSal__300424B4");
+
+                // 👇 Add this relationship
+                entity.HasOne(d => d.Product)
+                    .WithMany(p => p.DetailSales)
+                    .HasForeignKey(d => d.IdProduct)
+                    .HasConstraintName("FK__DetailSale__idProduct");
+
             });
 
             modelBuilder.Entity<Menu>(entity =>

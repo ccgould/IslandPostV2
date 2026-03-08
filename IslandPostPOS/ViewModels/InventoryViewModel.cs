@@ -1,14 +1,11 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IslandPostPOS.Enumerators;
-using IslandPostPOS.Models;
 using IslandPostPOS.Services;
 using IslandPostPOS.Shared.DTOs;
 using Microsoft.UI.Xaml.Media.Imaging;
-using Syncfusion.UI.Xaml.DataGrid;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -247,8 +244,16 @@ public partial class InventoryViewModel : ObservableObject
             {
                    await ProductService.AddProductAsync(Product);
             }
-            IsEditing = false;
+
+            Reset();
         }
+    }
+
+    private void Reset()
+    {
+        ImageFileName = string.Empty;
+        Product = null;
+        IsEditing = false;
     }
 
     [RelayCommand]
@@ -280,7 +285,7 @@ public partial class InventoryViewModel : ObservableObject
     [RelayCommand]
     private async Task Back()
     {
-        IsEditing = false;
+        Reset();
     }
      
     internal async Task LoadProducts()

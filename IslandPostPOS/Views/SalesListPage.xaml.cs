@@ -29,7 +29,7 @@ namespace IslandPostPOS.Views
         }
 
 
-        protected override void OnNavigatedTo(NavigationEventArgs e)
+        protected async override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
 
@@ -39,6 +39,8 @@ namespace IslandPostPOS.Views
 
             // Assign it to the DataContext or store it
             this.DataContext = viewModel;
+
+            await viewModel.LoadParkedSalesAsync();
         }
 
         private void PayButton_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
@@ -97,6 +99,14 @@ namespace IslandPostPOS.Views
                 await ViewModel.ParkSaleAsync(inputPage.Value);
             }
 
+        }
+
+        private void RetrieveSale_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is SaleDTO sale)
+            {
+                ViewModel.RetrieveCommand.Execute(sale);
+            }
         }
     }
 }

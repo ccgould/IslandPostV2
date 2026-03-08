@@ -16,6 +16,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.UserDataTasks.DataProvider;
+using Windows.Services.Maps;
 
 namespace IslandPostPOS.ViewModels;
 
@@ -44,6 +45,7 @@ public partial class StorePageViewModel : ObservableObject
     [ObservableProperty] private string saleCountTxt = "0 items";
     [ObservableProperty] private decimal changeAmount = 0.0m;
     [ObservableProperty] private string finalizeMessage = "Payment Recieved";
+    private SaleDTO? _registeredSale;
     private readonly IDialogService dialogService;
 
     public APIService Service { get; private set; }
@@ -69,6 +71,11 @@ public partial class StorePageViewModel : ObservableObject
 
         if (SaleItems.Any(x => x.IdProduct == product.IdProduct))
         {
+            var saleItem = SaleItems.FirstOrDefault(x => x.IdProduct == product.IdProduct);
+            if (saleItem != null) 
+            {
+                saleItem.Quantity += 1;
+            }
             return;
         }
 
@@ -78,6 +85,7 @@ public partial class StorePageViewModel : ObservableObject
 
         AmountToPay += item.Total ?? 0;
         ShowTotals();
+        SearchText = string.Empty;
     }
 
     private void SaleCount()
@@ -200,12 +208,12 @@ public partial class StorePageViewModel : ObservableObject
             }).ToList()
         };
 
-        var registeredSale = await Service.CheckOutAsync(saleDto);
+        _registeredSale = await Service.CheckOutAsync(saleDto);
 
-        if (registeredSale != null)
+        if (_registeredSale != null)
         {
             // Optionally show confirmation dialog or update UI
-            FinalizeMessage = $"Sale #{registeredSale.SaleNumber} registered successfully!";
+            FinalizeMessage = $"Sale #{_registeredSale.SaleNumber} registered successfully!";
         }
     }
 
@@ -283,12 +291,66 @@ public partial class StorePageViewModel : ObservableObject
 
         Clear();
 
-        var parkedSale = await Service.ParkSaleAsync(saleDto);
+        // Step 2: Register the sale
+        var registeredSale = await Service.CheckOutAsync(saleDto);
+
+        // Step 3: Park the sale (if not already parked)
+        var parkedSale = await Service.ParkSaleAsync(registeredSale.IdSale);
 
         if (parkedSale is not null)
         {
             // Show notification
             Service.ParkedSales.Add(parkedSale);
         }
+    }
+
+    
+    [RelayCommand]
+    private async Task Retrieve(SaleDTO sale)
+    {
+        if (sale is null) return;
+
+        // 👇 Call API to mark sale as Retrieved
+        var updatedSale = await Service.RetrieveSaleAsync(sale.IdSale);
+        if (updatedSale == null) return;
+
+        // Clear current sale
+        Clear();
+
+        // Rehydrate SaleItems from the retrieved sale
+        foreach (var detail in updatedSale.DetailSales)
+        {
+            var item = new PurchaseItem(detail);
+            item.PropertyChanged += PurchaseItem_PropertyChanged;
+            SaleItems.Add(item);
+        }
+
+        // Restore totals
+        SubTotal = updatedSale.Subtotal ?? 0;
+        TotalTax = updatedSale.TotalTaxes ?? 0;
+        SaleTotal = updatedSale.Total ?? 0;
+        AmountToPay = updatedSale.Total ?? 0;
+
+        // Restore other metadata
+        //PaymentMethod = updatedSale.PaymentMethod;
+        //ClientName = updatedSale.ClientName;
+        //Note = updatedSale.Note;
+        //Status = updatedSale.Status; // 👈 keep track of lifecycle state
+    }
+    
+    public async Task LoadParkedSalesAsync()
+    {
+        Service.ParkedSales.Clear();
+        var parked = await Service.GetParkedSalesAsync();
+        foreach (var sale in parked)
+        {
+            Service.ParkedSales.Add(sale);
+        }
+    }
+
+    internal async Task CompleteSale()
+    {
+        await Service.FinalizeSaleAsync(_registeredSale.IdSale);
+        Clear();
     }
 }

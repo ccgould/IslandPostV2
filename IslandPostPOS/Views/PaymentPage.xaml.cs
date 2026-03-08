@@ -52,9 +52,9 @@ namespace IslandPostPOS.Views
             return amount?.ToString("C") ?? "NA";
         }
 
-        private void Complete_Click(object sender, RoutedEventArgs e)
+        private  async void Complete_Click(object sender, RoutedEventArgs e)
         {
-            ViewModel.Clear();
+            await ViewModel.CompleteSale();
             Frame.Navigate(typeof(SalesListPage), ViewModel);
         }
     }

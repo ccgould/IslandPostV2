@@ -210,7 +210,12 @@ namespace IslandPostApi.Services
                 Quantity = p.Quantity,
                 Price = p.Price ?? 0m,
                 IsActive = p.IsActive.HasValue ? (p.IsActive.Value ? 1 : 0) : null,
-                IsDiscount = p.IsDiscount.HasValue ? (p.IsDiscount.Value ? 1 : 0) : null
+                IsDiscount = p.IsDiscount.HasValue ? (p.IsDiscount.Value ? 1 : 0) : null,
+
+                // Map photo columns
+                Photo = p.Photo,
+                PhotoUrl = $"/api/products/{p.IdProduct}/photo",
+                ThumbnailUrl = $"/api/products/{p.IdProduct}/thumbnail"
             }).ToList();
         }
 

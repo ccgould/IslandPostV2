@@ -2,8 +2,10 @@
 {
     public enum SaleStatus
     {
-        Parked = 0,
-        Completed = 1,
-        Cancelled = 2
+        Active = 0,      // Sale in progress
+        Parked = 1,      // Temporarily saved, not yet resumed
+        Retrieved = 2,   // Loaded from parked list, being edited
+        Completed = 3,   // Finalized and checked out
+        Cancelled = 4    // Optional: voided sale
     }
 }

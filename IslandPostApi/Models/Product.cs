@@ -21,6 +21,8 @@ public partial class Product
     public bool? IsActive { get; set; }
     public bool? IsDiscount { get; set; }
     public DateTime? RegistrationDate { get; set; }
+    public virtual ICollection<DetailSale> DetailSales { get; set; } = new List<DetailSale>();
+
 
     public virtual Category? IdCategoryNavigation { get; set; }
 

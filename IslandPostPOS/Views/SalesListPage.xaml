@@ -125,7 +125,8 @@
                                 <ItemsRepeater.ItemTemplate>
                                     <DataTemplate x:DataType="dtos:SaleDTO">
                                         <Button Content="{x:Bind Note}"
-                                        />
+                                                Click="RetrieveSale_Click"
+                                                Tag="{x:Bind}"/>
                                     </DataTemplate>
                                 </ItemsRepeater.ItemTemplate>
                             </ItemsRepeater>

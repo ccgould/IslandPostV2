@@ -1,5 +1,6 @@
 ﻿using IslandPostApi.Contracts;
 using IslandPostApi.Models;
+using IslandPostApi.Services;
 using IslandPostPOS.Shared.DTOs;
 using IslandPostPOS.Shared.Enumerators;
 using Microsoft.AspNetCore.Mvc;
@@ -106,5 +107,38 @@ namespace IslandPostApi.Controllers
                 return BadRequest(new { error = ex.Message });
             }
         }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<SaleDTO>> GetSale(int id)
+        {
+            var sale = await _service.GetByIdAsync(id);
+            if (sale == null) return NotFound();
+            return Ok(sale);
+        }
+
+        [HttpGet("Parked")]
+        public async Task<ActionResult<List<SaleDTO>>> GetParkedSales()
+        {
+            var sales = await _service.GetParkedAsync();
+            return Ok(sales);
+        }
+
+        [HttpPost("{saleId}/park")]
+        public async Task<ActionResult<SaleDTO>> Park(int saleId)
+            => Ok(await _service.ParkAsync(saleId));
+
+        [HttpPost("{saleId}/retrieve")]
+        public async Task<ActionResult<SaleDTO>> Retrieve(int saleId)
+            => Ok(await _service.RetrieveAsync(saleId));
+
+        [HttpPost("{saleId}/finalize")]
+        public async Task<ActionResult<SaleDTO>> Finalize(int saleId)
+            => Ok(await _service.FinalizeAsync(saleId));
+
+        [HttpPost("{saleId}/cancel")]
+        public async Task<ActionResult<SaleDTO>> Cancel(int saleId)
+            => Ok(await _service.CancelAsync(saleId));
+
+
     }
 }

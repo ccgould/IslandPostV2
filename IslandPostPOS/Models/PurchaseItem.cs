@@ -31,6 +31,19 @@ public partial class PurchaseItem : ObservableObject
         RecalculateTotal();
     }
 
+    public PurchaseItem(DetailSaleDTO detail)
+    {
+        IdProduct = detail.IdProduct ?? 0;
+        Description = detail.DescriptionProduct;
+        Brand = detail.BrandProduct;
+        IdCategory = null; // not available in DetailSaleDTO
+        Quantity = detail.Quantity ?? 0;
+        Price = detail.Price;
+        Total = detail.Total;
+        Note = string.Empty;
+        DiscountPercent = 0;
+    }
+
     private void RecalculateTotal()
     {
         var baseTotal = (Price ?? 0) * Quantity;
