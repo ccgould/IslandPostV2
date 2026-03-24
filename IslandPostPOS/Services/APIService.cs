@@ -10,6 +10,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Security.Claims;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Storage;
@@ -19,8 +20,8 @@ namespace IslandPostPOS.Services;
 
 public partial class APIService : DataLoaderService
 {
+    private readonly Dictionary<int, ProductDTO> _productCache = new();
     [ObservableProperty] private ObservableCollection<ProductDTO> products;
-    [ObservableProperty] private ObservableCollection<ProductDTO> filteredProducts;
     [ObservableProperty] private ObservableCollection<CategoryDTO> categories;
     [ObservableProperty] private ObservableCollection<SaleDTO> salesHistory = new();
     [ObservableProperty] private ObservableCollection<SaleDTO> parkedSales = new();
@@ -31,7 +32,6 @@ public partial class APIService : DataLoaderService
     public APIService(IHttpClientFactory httpClientFactory) : base(httpClientFactory)
     {
         products = new();
-        filteredProducts = new();
         categories = new();
         SqlFilterBehavior = new CustomFiltering(this);
 
@@ -74,11 +74,31 @@ public partial class APIService : DataLoaderService
         return new List<ProductDTO>();
     }
 
-    public async Task SearchAndUpdateProductsAsync(string search, CancellationToken cancellationToken = default)
+    public async Task<List<ProductDTO>> SearchAndUpdateProductsAsync(
+            string search,
+            CancellationToken cancellationToken = default)
     {
         var results = await SearchForProductsAsync(search, cancellationToken);
-        FilteredProducts = new ObservableCollection<ProductDTO>(results);
+
+        // Update cache
+        foreach (var product in results)
+        {
+            _productCache[product.IdProduct] = product;
+        }
+
+        return results;
     }
+
+    public IEnumerable<ProductDTO> GetCachedResults(string query)
+    {
+        return _productCache.Values.Where(p =>
+            (!string.IsNullOrEmpty(p.Description) && p.Description.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
+            (!string.IsNullOrEmpty(p.Brand) && p.Brand.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
+            (!string.IsNullOrEmpty(p.BarCode) && p.BarCode.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
+            (!string.IsNullOrEmpty(p.NameCategory) && p.NameCategory.Contains(query, StringComparison.OrdinalIgnoreCase))
+        );
+    }
+
 
     public HttpClient GetClient() => (HttpClient)this.GetType()
         .BaseType?
@@ -128,7 +148,7 @@ public partial class APIService : DataLoaderService
 
         return product;
     }
-    
+
     public async Task<bool> DeleteProductAsync(int productId, CancellationToken cancellationToken = default)
     {
         var client = GetClient();
@@ -437,4 +457,45 @@ public partial class APIService : DataLoaderService
         var sales = await response.Content.ReadFromJsonAsync<List<SaleDTO>>(cancellationToken: cancellationToken);
         return sales ?? new List<SaleDTO>();
     }
+    public async Task<List<ChartEarningsModel>> LoadLast7DaysTotalsAsync()
+    {
+        var startDate = DateTime.Today.AddDays(-6).ToString("yyyy-MM-dd");
+        var endDate = DateTime.Today.ToString("yyyy-MM-dd");
+
+        // ✅ Correct API call
+        var url = $"api/sales/dailytotals?startDate={startDate}&endDate={endDate}";
+        
+        var response = await GetClient().GetAsync(url);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync();
+        var report = JsonSerializer.Deserialize<List<SaleReportDTO>>(json,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        // Map SaleReportDTO → ChartEarningsModel
+        var chartData = report?.Select(r => new ChartEarningsModel
+        {
+            Date = DateTime.Parse(r.RegistrationDate),   // parse string → DateTime
+            Amount = (double)r.Total   // cast decimal → double
+        }).ToList() ?? new List<ChartEarningsModel>();
+
+       return chartData;
+    }
+
+    public async Task<SalesSummaryDTO> LoadSalesSummaryAsync()
+    {
+
+        var startDate = DateTime.Today.AddDays(-30);
+        var endDate = DateTime.Today;
+
+        var url = $"api/sales/salessummary?startDate={startDate:yyyy-MM-dd}&endDate={endDate:yyyy-MM-dd}";
+        var response = await GetClient().GetAsync(url);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync();
+        var report = JsonSerializer.Deserialize<SalesSummaryDTO>(json,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        return report;
+    }
 }
+        

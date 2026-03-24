@@ -312,5 +312,120 @@ namespace IslandPostApi.Services
                 throw;
             }
         }
+
+        public async Task<List<SaleReportDTO>> ReportDailyTotalsAsync(string startDate, string endDate)
+        {
+            var start = DateTime.Parse(startDate).Date;
+            var end = DateTime.Parse(endDate).Date.AddDays(1).AddTicks(-1);
+
+            var sales = await _context.Sales
+                .Where(s => s.RegistrationDate >=start &&
+                            s.RegistrationDate <= end 
+                            && s.Status != SaleStatus.Retrieved && s.Status != SaleStatus.Parked)
+                .ToListAsync();
+
+            var grouped = sales
+                .GroupBy(s => s.RegistrationDate.Value.Date) // group by day only
+                .Select(g => new SaleReportDTO
+                {
+                    RegistrationDate = g.Key.ToString("yyyy-MM-dd"),   // format back to string for DTO
+                    Total = g.Sum(x => x.Total)     // sum all sales for that day
+                })
+                .OrderBy(r => r.RegistrationDate)
+                .ToList();
+
+            return grouped;
+        }
+
+        public async Task<SalesSummaryDTO> ReportSalesSummaryAsync(DateTime startDate, DateTime endDate)
+        {
+            // Base query with half-open range
+            var sales = await _context.Sales
+                .Where(s => s.RegistrationDate >= startDate &&
+                            s.RegistrationDate < endDate.AddDays(1))
+                .ToListAsync();
+
+            // Daily chart data (across range)
+            var dailyTotals = sales
+                .GroupBy(s => s.RegistrationDate.Value.Date)
+                .Select(g => new { Date = g.Key, Total = g.Sum(x => x.Total) })
+                .OrderBy(x => x.Date)
+                .ToList()
+                .Select(x => new SaleReportDTO
+                {
+                    Date = x.Date.ToString("yyyy-MM-dd"),
+                    Total = x.Total
+                })
+                .ToList();
+
+            // Weekly chart data (current week, per day)
+            var diff = (7 + (int)DateTime.Today.DayOfWeek - (int)DayOfWeek.Monday) % 7;
+            var startOfWeek = DateTime.Today.AddDays(-diff);
+            var endOfWeek = startOfWeek.AddDays(7);
+
+            var weeklyDailyTotalsRaw = await _context.Sales
+                .Where(s => s.RegistrationDate >= startOfWeek &&
+                            s.RegistrationDate < endOfWeek)
+                .GroupBy(s => s.RegistrationDate.Value.Date)
+                .Select(g => new { Date = g.Key, Total = g.Sum(x => x.Total) })
+                .OrderBy(x => x.Date)
+                .ToListAsync();
+
+            var weeklyDailyTotals = weeklyDailyTotalsRaw
+                .Select(x => new SaleReportDTO
+                {
+                    DateValue = x.Date,                       // DateTime for chart
+                    Date = x.Date.ToString("yyyy-MM-dd"),     // optional label
+                    Total = x.Total
+                })
+                .ToList();
+
+            var weeklyTotal = weeklyDailyTotals.Sum(d => d.Total ?? 0);
+
+            // Monthly chart data (current month, per day)
+            var startOfMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            var endOfMonth = startOfMonth.AddMonths(1);
+
+            var monthlyTotalsRaw = await _context.Sales
+                .GroupBy(s => new { s.RegistrationDate.Value.Year, s.RegistrationDate.Value.Month })
+                .Select(g => new
+                {
+                    Year = g.Key.Year,
+                    Month = g.Key.Month,
+                    Total = g.Sum(x => x.Total)
+                })
+                .OrderBy(x => x.Year).ThenBy(x => x.Month)
+                .ToListAsync();
+
+
+            var monthlyTotals = monthlyTotalsRaw
+                .Select(x => new SaleReportDTO
+                {
+                    DateValue = new DateTime(x.Year, x.Month, 1),   // ✅ first day of month
+                    Date = $"{x.Year}-{x.Month:D2}",                // optional label
+                    Total = x.Total
+                })
+                .ToList();
+
+
+
+            // KPI cards (calendar-based)
+            var todayTotal = await _context.Sales
+                .Where(s => s.RegistrationDate >= DateTime.Today &&
+                            s.RegistrationDate < DateTime.Today.AddDays(1))
+                .SumAsync(s => s.Total);
+
+            var monthlyTotal = monthlyTotals.Sum(d => d.Total ?? 0);
+
+            return new SalesSummaryDTO
+            {
+                DailyTotals = dailyTotals,
+                WeeklyDailyTotals = weeklyDailyTotals,
+                MonthlyTotals = monthlyTotals,
+                TodayTotal = todayTotal ?? 0,
+                WeeklyTotal = weeklyTotal,
+                MonthlyTotal = monthlyTotal
+            };
+        }
     }
 }

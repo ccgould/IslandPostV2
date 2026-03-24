@@ -26,8 +26,20 @@ namespace IslandPostPOS.Views
         public SalesListPage()
         {
             InitializeComponent();
+            this.Unloaded += SalesListPage_Unloaded;
+            this.Loaded += SalesListPage_Loaded;
+
         }
 
+        private void SalesListPage_Loaded(object sender, RoutedEventArgs e)
+        {
+            ViewModel.SubscribeScannerEvents();
+        }
+
+        private void SalesListPage_Unloaded(object sender, RoutedEventArgs e)
+        {
+            ViewModel.UnsubscribeScannerEvents();
+        }
 
         protected async override void OnNavigatedTo(NavigationEventArgs e)
         {
@@ -107,6 +119,11 @@ namespace IslandPostPOS.Views
             {
                 ViewModel.RetrieveCommand.Execute(sale);
             }
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            ProductSearchBox.Focus(FocusState.Programmatic);
         }
     }
 }

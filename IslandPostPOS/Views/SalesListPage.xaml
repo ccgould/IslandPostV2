@@ -59,7 +59,7 @@
                 IsVerticalScrollChainingEnabled="False"
                 Padding="0,0,16,0">
                 <ItemsRepeater
-                    ItemsSource="{x:Bind ViewModel.Service.FilteredProducts,Mode=OneWay}"
+                    ItemsSource="{x:Bind ViewModel.FilteredProducts,Mode=OneWay}"
                     Layout="{StaticResource UniformGridLayout2}">
                     <ItemsRepeater.ItemTemplate>
                         <DataTemplate x:DataType="dtos:ProductDTO">
@@ -68,7 +68,8 @@
                                 Height="150" Width="150"
                                 Command="{Binding DataContext.AddPurchaseItemCommand, 
                                 ElementName=RootPage}" 
-                                CommandParameter="{x:Bind}">
+                                CommandParameter="{x:Bind}"
+                                Click="Button_Click">
                                 <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="90"/>
@@ -118,7 +119,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <DropDownButton Content="Retreieve Sale" BorderThickness="0"  IsEnabled="{x:Bind ViewModel.Service.ParkedSales.Count, Mode=OneWay, Converter={StaticResource GreaterThanZeroConverter}}">
+                <DropDownButton Content="Retrieve Sale" BorderThickness="0"  IsEnabled="{x:Bind ViewModel.Service.ParkedSales.Count, Mode=OneWay, Converter={StaticResource GreaterThanZeroConverter}}">
                     <DropDownButton.Flyout>
                         <Flyout Placement="Bottom">
                             <ItemsRepeater ItemsSource="{x:Bind ViewModel.Service.ParkedSales, Mode=OneWay}">

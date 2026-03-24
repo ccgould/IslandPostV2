@@ -5,18 +5,221 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:IslandPostPOS.Views"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:animations="using:CommunityToolkit.WinUI.Animations"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:chart="using:Syncfusion.UI.Xaml.Charts"
     mc:Ignorable="d">
 
-    <StackPanel Orientation="Vertical">
-        <TextBlock Text="Welcome to Home!"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   FontSize="24"/>
-        <TextBlock Text="Welcome to Home!"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   FontSize="24"/>
-    </StackPanel>
+    <Grid Background="#f4f2f5">
+        <Grid.Resources>
+            <CornerRadius x:Key="GridViewItemCornerRadius">8</CornerRadius>
 
+            <animations:ImplicitAnimationSet x:Name="ShowTransitions">
+                <animations:OffsetAnimation
+                    EasingMode="EaseOut"
+                    From="0,24,0"
+                    To="0"
+                    Duration="0:0:0.4" />
+                <animations:OpacityAnimation
+                    EasingMode="EaseOut"
+                    From="0"
+                    To="1"
+                    Duration="0:0:0.2" />
+            </animations:ImplicitAnimationSet>
+            <animations:ImplicitAnimationSet x:Name="HideTransitions">
+                <animations:OffsetAnimation
+                    EasingMode="EaseOut"
+                    From="0"
+                    To="0,24,0"
+                    Duration="0:0:0.2" />
+                <animations:OpacityAnimation
+                    EasingMode="EaseOut"
+                    From="1"
+                    To="0"
+                    Duration="0:0:0.1" />
+            </animations:ImplicitAnimationSet>
+        </Grid.Resources>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="100"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="100"/>
+        </Grid.RowDefinitions>
+
+        <SelectorBar
+                    x:Name="FilterBar"
+                    Grid.Row="1"
+                    Margin="36,24,0,16"
+                    HorizontalAlignment="Center">
+            <SelectorBarItem
+                        Icon="Calendar"
+                        Tag="Day"
+                        Text="Day" />
+            <SelectorBarItem
+                        Icon="Calendar"
+                        IsSelected="True"
+                        Tag="Recent"
+                        Text="Week" />
+            <SelectorBarItem
+                        Icon="Calendar"
+                        Tag="Favorites"
+                        Text="Month" />
+        </SelectorBar>
+
+        <toolkit:SwitchPresenter
+                    Grid.Row="2"
+                    Margin="36,0,36,36"
+                    Value="{x:Bind FilterBar.SelectedItem.Tag, Mode=OneWay}">
+            <toolkit:Case Value="Day">
+                <StackPanel
+                            x:Name="DayPanel"
+                            Grid.Row="1"
+                            animations:Implicit.HideAnimations="{StaticResource HideTransitions}"
+                            animations:Implicit.ShowAnimations="{StaticResource ShowTransitions}"
+                            Spacing="12">
+                    <TextBlock
+                                x:Name="DayTitle"
+                                FontSize="16"
+                                Style="{StaticResource BodyStrongTextBlockStyle}"
+                                Text="Week Sales"
+                                AutomationProperties.HeadingLevel="Level2" />
+                    <Grid Grid.Row="3" Height="300" Padding="20,50,20,20" Background="White">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="200"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Orientation="Vertical" VerticalAlignment="Top" Margin="10,0,0,0">
+                            <TextBlock Text="This week your store has sold" FontWeight="SemiBold" FontSize="20"/>
+                            <TextBlock Text="{x:Bind ViewModel.TodayTotal, Mode=OneWay}" FontWeight="SemiBold" FontSize="20"/>
+                        </StackPanel>
+
+
+                        <chart:SfCartesianChart Grid.Column="1" Header="Todays Earnings">
+                            <chart:SfCartesianChart.Legend>
+                                <chart:ChartLegend/>
+                            </chart:SfCartesianChart.Legend>
+
+                            <chart:SfCartesianChart.XAxes>
+                                <chart:DateTimeAxis Header="Date"
+                            IntervalType="Days"
+                            Interval="1" />
+                            </chart:SfCartesianChart.XAxes>
+
+                            <chart:SfCartesianChart.YAxes>
+                                <chart:NumericalAxis Header="Earnings" />
+                            </chart:SfCartesianChart.YAxes>
+
+                            <chart:ColumnSeries ItemsSource="{x:Bind ViewModel.WeeklyData, Mode=OneWay}"
+                        XBindingPath="Date"
+                        YBindingPath="Amount"
+                        ShowDataLabels="False"
+                        EnableTooltip="True">
+                            </chart:ColumnSeries>
+                        </chart:SfCartesianChart>
+                    </Grid>
+
+                </StackPanel>
+            </toolkit:Case>
+            <toolkit:Case Value="Recent">
+                <StackPanel
+                            x:Name="RecentSamplesPanel"
+                            Grid.Row="1"
+                            animations:Implicit.HideAnimations="{StaticResource HideTransitions}"
+                            animations:Implicit.ShowAnimations="{StaticResource ShowTransitions}"
+                            Spacing="12">
+                    <TextBlock
+                                x:Name="RecentlyVisitedTitle"
+                                FontSize="16"
+                                Style="{StaticResource BodyStrongTextBlockStyle}"
+                                Text="Week Sales"
+                                AutomationProperties.HeadingLevel="Level2" />
+                    <Grid Grid.Row="3" Height="300" Padding="20,50,20,20" Background="White">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="200"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Orientation="Vertical" VerticalAlignment="Top" Margin="10,0,0,0">
+                            <TextBlock Text="This week your store has sold" FontWeight="SemiBold" FontSize="20"/>
+                            <TextBlock Text="{x:Bind ViewModel.WeeklyTotal, Mode=OneWay}" FontWeight="SemiBold" FontSize="20"/>
+                        </StackPanel>
+
+
+                        <chart:SfCartesianChart Grid.Column="1" Header="Week Earnings">
+                            <chart:SfCartesianChart.Legend>
+                                <chart:ChartLegend/>
+                            </chart:SfCartesianChart.Legend>
+
+                            <chart:SfCartesianChart.XAxes>
+                                <chart:DateTimeAxis Header="Date"
+                            IntervalType="Days"
+                            Interval="1" />
+                            </chart:SfCartesianChart.XAxes>
+
+                            <chart:SfCartesianChart.YAxes>
+                                <chart:NumericalAxis Header="Earnings" />
+                            </chart:SfCartesianChart.YAxes>
+
+                            <chart:ColumnSeries ItemsSource="{x:Bind ViewModel.WeeklyData, Mode=OneWay}"
+                        XBindingPath="Date"
+                        YBindingPath="Amount"
+                        ShowDataLabels="False"
+                        EnableTooltip="True">
+                            </chart:ColumnSeries>
+                        </chart:SfCartesianChart>
+                    </Grid>
+
+                </StackPanel>
+            </toolkit:Case>
+            <toolkit:Case Value="Favorites">
+                <StackPanel
+                            x:Name="FavoriteSamplesPanel"
+                            animations:Implicit.HideAnimations="{StaticResource HideTransitions}"
+                            animations:Implicit.ShowAnimations="{StaticResource ShowTransitions}">
+                    <TextBlock
+                                x:Name="FavoriteTitle"
+                                FontSize="16"
+                                Style="{StaticResource BodyStrongTextBlockStyle}"
+                                Text="Week Sales"
+                                AutomationProperties.HeadingLevel="Level2" />
+                    <Grid Grid.Row="3" Height="300" Padding="20,50,20,20" Background="White">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="200"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Orientation="Vertical" VerticalAlignment="Top" Margin="10,0,0,0">
+                            <TextBlock Text="This week your store has sold" FontWeight="SemiBold" FontSize="20"/>
+                            <TextBlock Text="{x:Bind ViewModel.MonthlyTotal, Mode=OneWay}" FontWeight="SemiBold" FontSize="20"/>
+                        </StackPanel>
+
+
+                        <chart:SfCartesianChart Grid.Column="1" Header="Month Earnings">
+                            <chart:SfCartesianChart.XAxes>
+                                <chart:DateTimeAxis Header="Month"
+                            IntervalType="Months"
+                            Interval="1"
+                            />
+                            </chart:SfCartesianChart.XAxes>
+
+                            <chart:SfCartesianChart.YAxes>
+                                <chart:NumericalAxis Header="Earnings"/>
+                            </chart:SfCartesianChart.YAxes>
+
+                            <chart:ColumnSeries ItemsSource="{x:Bind ViewModel.MonthlyData, Mode=OneWay}"
+                        XBindingPath="Date"
+                        YBindingPath="Amount"
+                        EnableTooltip="True"/>
+                        </chart:SfCartesianChart>
+
+                    </Grid>
+                </StackPanel>
+            </toolkit:Case>
+        </toolkit:SwitchPresenter>
+    </Grid>
 </Page>

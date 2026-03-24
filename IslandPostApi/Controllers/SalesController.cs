@@ -139,6 +139,40 @@ namespace IslandPostApi.Controllers
         public async Task<ActionResult<SaleDTO>> Cancel(int saleId)
             => Ok(await _service.CancelAsync(saleId));
 
+        [HttpGet("DailyTotals")]
+        public async Task<ActionResult<IEnumerable<SaleReportDTO>>> DailyTotals(string startDate, string endDate)
+        {
+            try
+            {
+                var report = await _service.ReportDailyTotalsAsync(startDate, endDate);
 
+                if (report == null || !report.Any())
+                    return NotFound("No daily totals found for given criteria.");
+
+                return Ok(report);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("SalesSummary")]
+        public async Task<ActionResult<SalesSummaryDTO>> SalesSummary(DateTime startDate, DateTime endDate)
+        {
+            try
+            {
+                var report = await _service.ReportSalesSummaryAsync(startDate, endDate);
+
+                if (report == null || !report.DailyTotals.Any())
+                    return NotFound("No sales found for given criteria.");
+
+                return Ok(report);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
     }
 }

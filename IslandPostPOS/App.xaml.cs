@@ -5,6 +5,8 @@ using IslandPostPOS.Views;
 using IslandPostPOS.Windows;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Toolkit.Uwp.Notifications;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Syncfusion.Licensing;
@@ -40,8 +42,7 @@ public partial class App : Application
     /// <param name="args">Details about the launch request and process.</param>
     protected async override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
-
-        // Build configuration
+         // Build configuration
         var config = new ConfigurationBuilder() 
             .SetBasePath(AppContext.BaseDirectory) 
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true) 
@@ -52,6 +53,21 @@ public partial class App : Application
 
         // Configure DI
         var services = new ServiceCollection();
+
+        // Register scanner service as a singleton
+        services.AddSingleton<UsbComScannerService>(sp =>
+        {
+            var dispatcher = DispatcherQueue.GetForCurrentThread();
+            return new UsbComScannerService(dispatcher, "COM9");
+        });
+
+
+        MainWindow = new MainWindow();
+        services.AddSingleton(MainWindow.DispatcherQueue);
+        Frame rootFrame = new Frame();
+        MainWindow.Content = rootFrame;
+        MainWindow.Activate();
+
 
         // Register ViewModels
         services.AddSingleton<MainViewModel>();
@@ -69,6 +85,8 @@ public partial class App : Application
         services.AddTransient<MangerCategoriesViewModel>();
         services.AddTransient<IDialogService>(sp =>
     new DialogService(App.MainWindow.Content.XamlRoot));
+        services.AddTransient<HomePage>();
+        services.AddTransient<HomePageViewModel>();
 
         services.AddTransient<LoadingViewModel>();
         // Register HttpClient (singleton, reusable)
@@ -81,12 +99,6 @@ public partial class App : Application
         });
 
         Services = services.BuildServiceProvider();
-        
-        MainWindow = new MainWindow();
-        Frame rootFrame = new Frame();
-        MainWindow.Content = rootFrame;
-        MainWindow.Activate();
-
 
         // Navigate to LoadingPage
         var vm = Services.GetRequiredService<LoadingViewModel>();
@@ -107,6 +119,10 @@ public partial class App : Application
         var loginViewModel = Services.GetRequiredService<LoginViewModel>();
         // Navigate and pass vm as parameter
         rootFrame.Navigate(typeof(LoginPage), loginViewModel);
+
+        // Start scanner globally
+        var scanner = Services.GetRequiredService<UsbComScannerService>();
+        scanner.Start();
 
     }
 }

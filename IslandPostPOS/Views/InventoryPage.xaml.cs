@@ -72,8 +72,6 @@ public sealed partial class InventoryPage : Page
             Brand = brandCmb.SelectedItem as string,
             Status = statusCmb.SelectedItem as string
         };
-
-        ViewModel.ResetProducts(filter);
     }
 
     private void backBTN_Click(object sender, RoutedEventArgs e)

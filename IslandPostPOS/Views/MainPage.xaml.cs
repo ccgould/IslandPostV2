@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using System.Linq;
+using static IslandPostPOS.Views.Controls.NotificationBanner;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -19,8 +20,6 @@ namespace IslandPostPOS.Views
         public MainPage()
         {
             InitializeComponent();
-            ContentFrame.Navigate(typeof(HomePage)); // Default page
-                                                     // Get the current window
 
             AddMenuItems();
 
@@ -30,6 +29,9 @@ namespace IslandPostPOS.Views
             window.SetTitleBar(titleBar); // Set the custom title bar
             window.AppWindow.SetIcon("Assets/Tiles/logo.ico");
             NavView.SelectedItem = NavView.MenuItems.OfType<NavigationViewItem>().First();
+            // Hook banner into service
+            NotificationService.Instance.Initialize(Banner);
+
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -53,7 +55,7 @@ namespace IslandPostPOS.Views
 
         private void SignOut_Click(object sender, RoutedEventArgs e)
         {
-            // Trigger your logout logic
+
         }
 
         private void AddMenuItems()
@@ -106,7 +108,9 @@ namespace IslandPostPOS.Views
                     switch (((string)selectedItem.Tag).ToLower())
                     {
                         case "home":
-                            ContentFrame.Navigate(typeof(HomePage));
+                            var homePage = App.Services.GetService(typeof(HomePage));
+                            ContentFrame.Content = homePage;
+
                             break;
                         case "profile":
                             ContentFrame.Navigate(typeof(ProfilePage));

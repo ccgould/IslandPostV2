@@ -6,22 +6,22 @@ using IslandPostPOS.Services.Contracts;
 using IslandPostPOS.Shared.DTOs;
 using IslandPostPOS.Shared.Helpers;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Documents;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO.Ports;
 using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Json;
+using System.Threading;
 using System.Threading.Tasks;
-using Windows.ApplicationModel.UserDataTasks.DataProvider;
-using Windows.Services.Maps;
+using Windows.System;
+using static IslandPostPOS.Views.Controls.NotificationBanner;
 
 namespace IslandPostPOS.ViewModels;
 
 public partial class StorePageViewModel : ObservableObject
 {
+    [ObservableProperty] private ObservableCollection<ProductDTO> filteredProducts = new();
     [ObservableProperty] private ObservableCollection<PurchaseItem> saleItems;
     [ObservableProperty] private ObservableCollection<Customer> customers;
     [ObservableProperty] private ObservableCollection<TransactionDTO> transactions = new();
@@ -45,12 +45,14 @@ public partial class StorePageViewModel : ObservableObject
     [ObservableProperty] private string saleCountTxt = "0 items";
     [ObservableProperty] private decimal changeAmount = 0.0m;
     [ObservableProperty] private string finalizeMessage = "Payment Recieved";
+    private string _portName = "COM9";
+
     private SaleDTO? _registeredSale;
     private readonly IDialogService dialogService;
 
     public APIService Service { get; private set; }
 
-    public StorePageViewModel(APIService service, IDialogService dialogService)
+    public StorePageViewModel(APIService service, IDialogService dialogService,UsbComScannerService scannerService)
     {
         saleItems = new();
         Service = service;
@@ -62,6 +64,39 @@ public partial class StorePageViewModel : ObservableObject
             string? paymentMethod = options[i];
             paymentMethods.Add(new PaymentMethod { IdPaymentMethod = i, Name = paymentMethod});
         }
+
+        _scanner = scannerService;
+    }
+
+    private async void OnScanReceived(object? sender, string data)
+    {
+        try
+        {
+            var product = await SearchProductAsync(data);
+            if (product != null)
+            {
+                AddPurchaseItem(product);
+            }
+            else
+            {
+                NotificationService.Instance.Show("Not found", $"Product with barcode {data} not found in database", NotificationSeverity.Warning);
+
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Instance.Show("Error", ex.Message, NotificationSeverity.Error);
+        }
+    }
+
+    private void OnScannerDisconnected(object? sender, EventArgs e)
+    {
+       // NotificationService.Instance.Show("Scanner Disconnected", "Please reconnect your barcode scanner.");
+    }
+
+    private void OnScannerReconnected(object? sender, EventArgs e)
+    {
+       NotificationService.Instance.Show("Scanner Connected", "Barcode scanner connected.");
     }
 
     [RelayCommand]
@@ -75,16 +110,20 @@ public partial class StorePageViewModel : ObservableObject
             if (saleItem != null) 
             {
                 saleItem.Quantity += 1;
+                AmountToPay += saleItem.Price ?? 0;
+                NotificationService.Instance.Show("Product", "Product already in list adding 1 to count");
             }
-            return;
+        }
+        else
+        {
+            var item = new PurchaseItem(product);
+            item.PropertyChanged += PurchaseItem_PropertyChanged; // 👈 listen for changes
+            SaleItems.Add(item);
+
+            AmountToPay += item.Total ?? 0;
+            ShowTotals();
         }
 
-        var item = new PurchaseItem(product);
-        item.PropertyChanged += PurchaseItem_PropertyChanged; // 👈 listen for changes
-        SaleItems.Add(item);
-
-        AmountToPay += item.Total ?? 0;
-        ShowTotals();
         SearchText = string.Empty;
     }
 
@@ -246,27 +285,87 @@ public partial class StorePageViewModel : ObservableObject
     }
 
 
+    private CancellationTokenSource _cts;
+    private UsbComScannerService _scanner;
+
     [RelayCommand]
     private async Task SearchProductsAsync(string query)
     {
-        await _debouncer.DebounceAsync(
-            async () =>
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+
+        try
+        {
+            await Task.Delay(250, _cts.Token); // debounce
+
+            IsSearching = true;
+
+            if (string.IsNullOrWhiteSpace(query))
             {
-                IsSearching = true;
+                FilteredProducts.Clear();
+                return;
+            }
 
-                if (string.IsNullOrWhiteSpace(query))
-                {
-                    Service.FilteredProducts.Clear();
-                }
-                else
-                {
-                    await Service.SearchAndUpdateProductsAsync(query);
-                }
+            // Step 1: Show cached results instantly
+            var cachedResults = Service.GetCachedResults(query).ToList();
+            if (cachedResults.Any())
+            {
+                FilteredProducts = new ObservableCollection<ProductDTO>(cachedResults);
+            }
 
-                IsSearching = false;
-            },
-            delayMs: 400
-        );
+            // Step 2: Refresh from API
+            var freshResults = await Service.SearchAndUpdateProductsAsync(query, _cts.Token);
+            FilteredProducts = new ObservableCollection<ProductDTO>(freshResults);
+        }
+        catch (TaskCanceledException)
+        {
+            NotificationService.Instance.Show("Cancelled", "Search was cancelled", NotificationSeverity.Warning);
+        }
+        finally
+        {
+            IsSearching = false;
+        }
+    }
+
+    private async Task<ProductDTO> SearchProductAsync(string query)
+    {
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+
+        try
+        {
+            await Task.Delay(250, _cts.Token); // debounce
+
+            IsSearching = true;
+
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                FilteredProducts.Clear();
+                return null;
+            }
+
+            // Step 1: Show cached results instantly
+            var cachedResults = Service.GetCachedResults(query).ToList();
+            if (cachedResults.Any())
+            {
+                return cachedResults.FirstOrDefault();
+            }
+            else
+            {
+                var results = await Service.SearchAndUpdateProductsAsync(query, _cts.Token);
+                return results.FirstOrDefault();
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            NotificationService.Instance.Show("Cancelled", "Search was cancelled", NotificationSeverity.Warning);
+        }
+        finally
+        {
+            IsSearching = false;
+        }
+
+        return null;
     }
 
     internal async Task ParkSaleAsync(string value)
@@ -353,4 +452,20 @@ public partial class StorePageViewModel : ObservableObject
         await Service.FinalizeSaleAsync(_registeredSale.IdSale);
         Clear();
     }
+
+    public void SubscribeScannerEvents()
+    {
+        _scanner.ScanReceived += OnScanReceived;
+        _scanner.ScannerDisconnected += OnScannerDisconnected;
+        _scanner.ScannerReconnected += OnScannerReconnected;
+    }
+
+    public void UnsubscribeScannerEvents()
+    {
+        _scanner.ScanReceived -= OnScanReceived;
+        _scanner.ScannerDisconnected -= OnScannerDisconnected;
+        _scanner.ScannerReconnected -= OnScannerReconnected;
+    }
+
+
 }

@@ -18,4 +18,6 @@ public interface ISaleService
     Task<List<SaleDTO>> GetParkedAsync();
     Task<SaleDTO> RetrieveAsync(int saleId);
     Task<SaleDTO> ParkAsync(int saleId);
+    Task<List<SaleReportDTO>> ReportDailyTotalsAsync(string startDate, string endDate);
+    Task<SalesSummaryDTO> ReportSalesSummaryAsync(DateTime startDate, DateTime endDate);
 }

@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:IslandPostPOS.Views"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:controllers="using:IslandPostPOS.Views.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
@@ -129,7 +130,11 @@
         <NavigationViewItem x:Name="inventoryItem" Content="Inventory" Icon="Add"/>
     </NavigationView.MenuItems>
 
-    <Frame x:Name="ContentFrame"/>
-</NavigationView>
+            <Grid>
+                <Frame x:Name="ContentFrame"/>
+                <!-- Place banner at top -->
+                <controllers:NotificationBanner x:Name="Banner"/>
+            </Grid>
+        </NavigationView>
     </Grid>
 </Page>

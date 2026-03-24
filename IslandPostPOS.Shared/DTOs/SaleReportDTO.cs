@@ -1,4 +1,6 @@
-﻿namespace IslandPostPOS.Shared.DTOs
+﻿using System;
+
+namespace IslandPostPOS.Shared.DTOs
 {
     public class SaleReportDTO
     {
@@ -16,5 +18,8 @@
         public decimal? Total { get; set; }
         public string? PaymentMethod { get; set; }
         public string? RegisterUser { get; set; }
+        public string? Date { get; set; }          // used for chart labels
+        public DateTime DateValue { get; set; }       // for chart binding
+
     }
 }
