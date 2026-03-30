@@ -247,7 +247,7 @@ public partial class StorePageViewModel : ObservableObject
             }).ToList()
         };
 
-        _registeredSale = await Service.CheckOutAsync(saleDto);
+        _registeredSale = await Service.CheckoutUnifiedAsync(saleDto);
 
         if (_registeredSale != null)
         {
@@ -391,7 +391,7 @@ public partial class StorePageViewModel : ObservableObject
         Clear();
 
         // Step 2: Register the sale
-        var registeredSale = await Service.CheckOutAsync(saleDto);
+        var registeredSale = await Service.CheckoutUnifiedAsync(saleDto);
 
         // Step 3: Park the sale (if not already parked)
         var parkedSale = await Service.ParkSaleAsync(registeredSale.IdSale);

@@ -28,6 +28,7 @@ public partial class APIService : DataLoaderService
     [ObservableProperty] private CurrentUserInfo? currentUser;
 
     public CustomFiltering SqlFilterBehavior { get; }
+    public bool IsTestMode { get; private set; } = true;
 
     public APIService(IHttpClientFactory httpClientFactory) : base(httpClientFactory)
     {
@@ -497,5 +498,34 @@ public partial class APIService : DataLoaderService
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         return report;
     }
+
+    public async Task<SaleDTO?> CheckoutUnifiedAsync(SaleDTO sale, CancellationToken cancellationToken = default)
+    {
+        if (IsTestMode)
+            return await CheckOutTestAsync(sale, cancellationToken);
+        else
+            return await CheckOutAsync(sale, cancellationToken);
+    }
+
+    public Task<SaleDTO?> CheckOutTestAsync(SaleDTO sale, CancellationToken cancellationToken = default)
+    {
+        // Simulate latency
+        return Task.FromResult(new SaleDTO
+        {
+            IdSale = -1, // marker for test
+            SaleNumber = $"TEST-{Guid.NewGuid().ToString("N")[..6]}",
+            IdUsers = sale.IdUsers,
+            Users = sale.Users,
+            ClientName = sale.ClientName ?? "Test Client",
+            CustomerDocument = sale.CustomerDocument,
+            Subtotal = sale.Subtotal,
+            TotalTaxes = sale.TotalTaxes,
+            Total = sale.Total,
+            RegistrationDate = DateTime.Now,
+            PaymentMethod = sale.PaymentMethod ?? "TEST",
+            DetailSales = sale.DetailSales,
+            Status = IslandPostPOS.Shared.Enumerators.SaleStatus.Parked, // or a custom Test status
+            Note = "TEST MODE: Not submitted"
+        });
+    }
 }
-        

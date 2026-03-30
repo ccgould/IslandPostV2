@@ -2,6 +2,7 @@ using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using System;
 using System.Threading.Tasks;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -18,15 +19,21 @@ namespace IslandPostPOS.Views.Controls
 
         public async void ShowMessage(string title,string message, NotificationSeverity severity, int durationMs = 3000)
         {
-            TitleText.Text = title;
-            MessageText.Text = message;
-            Root.Background = GetBackgroundBrush(severity);
-            Root.Visibility = Visibility.Visible;
+            try
+            {
+                TitleText.Text = title;
+                MessageText.Text = message;
+                Root.Background = GetBackgroundBrush(severity);
+                Root.Visibility = Visibility.Visible;
 
-            // Auto-dismiss after duration
-            await Task.Delay(durationMs);
-            Hide();
-            Services.NotificationService.Instance.ShowNext(); // show next queued message
+                // Auto-dismiss after duration
+                await Task.Delay(durationMs);
+                Hide();
+                Services.NotificationService.Instance.ShowNext(); // show next queued message
+            }
+            catch (Exception ex)
+            {
+            }
 
         }
 
