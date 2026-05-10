@@ -4,7 +4,9 @@ using IslandPostApi.Mapper;
 using IslandPostApi.Models;
 using IslandPostPOS.Shared.DTOs;
 using IslandPostPOS.Shared.Enumerators;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 using System.Globalization;
 
 namespace IslandPostApi.Services
@@ -142,32 +144,112 @@ namespace IslandPostApi.Services
             return sales.Select(SaleMapper.ToDto).ToList();
         }
 
-        public async Task<List<SaleReportDTO>> ReportAsync(string startDate, string endDate)
+        public async Task<EndOfShiftReportDTO> ReportAsync(DateTime shiftStart, DateTime shiftEnd)
         {
-            var start = DateTime.Parse(startDate).Date;
-            var end = DateTime.Parse(endDate).Date.AddDays(1).AddTicks(-1);
 
-            return await _context.DetailSale
-                .Where(d => d.IdSaleNavigation.RegistrationDate >= start &&
-                            d.IdSaleNavigation.RegistrationDate <= end)
-                .Select(d => new SaleReportDTO
+            var report = new EndOfShiftReportDTO();
+
+            // 1. Sales Summary
+            report.Summary = await _context.Sales
+                .Where(s => s.RegistrationDate >= shiftStart && s.RegistrationDate <= shiftEnd && s.Status == SaleStatus.Completed)
+                .GroupBy(s => 1)
+                .Select(g => new TodaySalesSummaryDTO
                 {
-                    RegistrationDate = d.IdSaleNavigation.RegistrationDate.Value.ToString("yyyy-MM-dd"),
-                    SaleNumber = d.IdSaleNavigation.SaleNumber,
-                    DocumentType = d.IdSaleNavigation.IdTypeDocumentSaleNavigation.Description,
-                    DocumentClient = d.IdSaleNavigation.CustomerDocument,
-                    ClientName = d.IdSaleNavigation.ClientName,
-                    SubTotalSale = d.IdSaleNavigation.Subtotal,
-                    TaxTotalSale = d.IdSaleNavigation.TotalTaxes,
-                    TotalSale = d.IdSaleNavigation.Total,
-                    Product = d.DescriptionProduct,
-                    Quantity = d.Quantity,
-                    Price = d.Price,
-                    Total = d.Total,
-                    PaymentMethod = d.IdSaleNavigation.PaymentMethod,
-                    RegisterUser = d.IdSaleNavigation.IdUsersNavigation.Name
+                    TotalSubtotal = g.Sum(x => x.Subtotal) ?? 0,
+                    TotalTaxes = g.Sum(x => x.TotalTaxes) ?? 0,
+                    TotalSales = g.Sum(x => x.Total) ?? 0,
+                    TransactionCount = g.Count()
+                })
+                .FirstOrDefaultAsync();
+
+            // 2. Payment Breakdown
+            report.PaymentBreakdown = await _context.Sales
+                .Where(s => s.RegistrationDate >= shiftStart && s.RegistrationDate <= shiftEnd && s.Status == SaleStatus.Completed)
+                .GroupBy(s => s.PaymentMethod)
+                .Select(g => new PaymentBreakdownDTO
+                {
+                    Method = g.Key,
+                    Amount = g.Sum(x => x.Total) ?? 0
                 })
                 .ToListAsync();
+
+            // 3. Cashier Breakdown
+            report.CashierBreakdown = await _context.Sales
+                .Where(s => s.RegistrationDate >= shiftStart &&
+                            s.RegistrationDate <= shiftEnd &&
+                            s.Status == SaleStatus.Completed)
+                .GroupBy(s => new { s.IdUsers, s.IdUsersNavigation.Name })
+                .Select(g => new CashierBreakdownDTO
+                {
+                    CashierId = g.Key.IdUsers ?? -1,
+                    CashierName = g.Key.Name ?? "Unknown",
+                    TransactionsHandled = g.Count(),
+                    CashierSales = g.Sum(x => x.Total) ?? 0
+                })
+                .ToListAsync();
+
+
+            // 4. Top Products by Quantity
+            report.TopProductsByQuantity = await _context.DetailSale
+                .Where(ds => ds.IdSaleNavigation.RegistrationDate >= shiftStart && ds.IdSaleNavigation.RegistrationDate <= shiftEnd && ds.IdSaleNavigation.Status == SaleStatus.Completed)
+                .GroupBy(ds => new { ds.IdProduct, ds.BrandProduct, ds.DescriptionProduct, ds.CategoryProducty })
+                .Select(g => new ProductReportDTO
+                {
+                    ProductId = g.Key.IdProduct ?? 0,
+                    Brand = g.Key.BrandProduct,
+                    Description = g.Key.DescriptionProduct,
+                    Category = g.Key.CategoryProducty,
+                    Quantity = g.Sum(x => x.Quantity) ?? 0,
+                    Revenue = g.Sum(x => x.Total) ?? 0
+                })
+                .OrderByDescending(p => p.Quantity)
+                .Take(10)
+                .ToListAsync();
+
+            // 5. Top Products by Revenue
+            report.TopProductsByRevenue = await _context.DetailSale
+                .Where(ds => ds.IdSaleNavigation.RegistrationDate >= shiftStart && ds.IdSaleNavigation.RegistrationDate <= shiftEnd && ds.IdSaleNavigation.Status == SaleStatus.Completed)
+                .GroupBy(ds => new { ds.IdProduct, ds.BrandProduct, ds.DescriptionProduct, ds.CategoryProducty })
+                .Select(g => new ProductReportDTO
+                {
+                    ProductId = g.Key.IdProduct ?? -1,
+                    Brand = g.Key.BrandProduct,
+                    Description = g.Key.DescriptionProduct,
+                    Category = g.Key.CategoryProducty,
+                    Quantity = g.Sum(x => x.Quantity) ?? 0,
+                    Revenue = g.Sum(x => x.Total) ?? 0
+                })
+                .OrderByDescending(p => p.Revenue)
+                .Take(10)
+                .ToListAsync();
+
+            // 6. All Sales from Today
+            // All sales between shiftStart and shiftEnd
+            report.AllSalesToday = await _context.Sales
+                .Where(s => s.RegistrationDate.HasValue &&
+                            s.RegistrationDate.Value >= shiftStart &&
+                            s.RegistrationDate.Value <= shiftEnd)
+                .Select(s => new SaleDTO
+                {
+                    IdSale = s.IdSale,
+                    SaleNumber = s.SaleNumber,
+                    IdTypeDocumentSale = s.IdTypeDocumentSale,
+                    IdUsers = s.IdUsers,
+                    CustomerDocument = s.CustomerDocument,
+                    ClientName = s.ClientName,
+                    Subtotal = s.Subtotal,
+                    TotalTaxes = s.TotalTaxes,
+                    Total = s.Total,
+                    RegistrationDate = s.RegistrationDate,
+                    PaymentMethod = s.PaymentMethod,
+                    Note = s.Note,
+                    Status = s.Status
+                })
+                .OrderBy(s => s.RegistrationDate)
+                .ToListAsync();
+
+
+            return report;
         }
 
         public async Task<SaleDTO> CancelAsync(int saleId)
@@ -329,7 +411,7 @@ namespace IslandPostApi.Services
                 .Select(g => new SaleReportDTO
                 {
                     RegistrationDate = g.Key.ToString("yyyy-MM-dd"),   // format back to string for DTO
-                    Total = g.Sum(x => x.Total)     // sum all sales for that day
+                    Total = g.Sum(x => x.Total) ?? 0     // sum all sales for that day
                 })
                 .OrderBy(r => r.RegistrationDate)
                 .ToList();

@@ -11,7 +11,7 @@ public interface ISaleService
 
     Task<List<SaleDTO>> SaleHistoryAsync(string SaleNumber, string StarDate, string EndDate, SaleStatus? status = null);
     Task<SaleDTO> DetailAsync(string SaleNumber);
-    Task<List<SaleReportDTO>> ReportAsync(string StarDate, string EndDate);
+    Task<EndOfShiftReportDTO> ReportAsync(DateTime StarDate, DateTime EndDate);
     Task<SaleDTO> CancelAsync(int saleId);
     Task<SaleDTO> FinalizeAsync(int saleId);
     Task<SaleDTO?> GetByIdAsync(int id);

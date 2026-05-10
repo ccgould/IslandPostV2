@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IdentityModel.Tokens.Jwt;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -28,7 +29,7 @@ public partial class APIService : DataLoaderService
     [ObservableProperty] private CurrentUserInfo? currentUser;
 
     public CustomFiltering SqlFilterBehavior { get; }
-    public bool IsTestMode { get; private set; } = true;
+    public bool IsTestMode { get; private set; } = false;
 
     public APIService(IHttpClientFactory httpClientFactory) : base(httpClientFactory)
     {
@@ -527,5 +528,29 @@ public partial class APIService : DataLoaderService
             Status = IslandPostPOS.Shared.Enumerators.SaleStatus.Parked, // or a custom Test status
             Note = "TEST MODE: Not submitted"
         });
+    }
+
+    public async Task<EndOfShiftReportDTO> GetReportPdfAsync(DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default)
+    {
+        var client = GetClient();
+
+        // Format query string in ISO 8601
+        string url = $"api/report/reportpdf?startDate={startDate:yyyy-MM-ddTHH:mm:ss}&endDate={endDate:yyyy-MM-ddTHH:mm:ss}";
+
+        var response = await client.GetAsync(url, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        // Deserialize JSON into your DTO
+        return await response.Content.ReadFromJsonAsync<EndOfShiftReportDTO>(cancellationToken: cancellationToken);
+    }
+
+    public async Task SaveReportPdfAsync(DateTime startDate, DateTime endDate, string filePath, CancellationToken cancellationToken = default)
+    {
+
+        var report = await GetReportPdfAsync(startDate, endDate, cancellationToken);
+        var generator = new PdfReportGenerator();
+        var pdfBytes = generator.GenerateReport(report);
+
+        await File.WriteAllBytesAsync(filePath, pdfBytes, cancellationToken);
     }
 }

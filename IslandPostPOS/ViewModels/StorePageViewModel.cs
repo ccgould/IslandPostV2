@@ -5,16 +5,12 @@ using IslandPostPOS.Services;
 using IslandPostPOS.Services.Contracts;
 using IslandPostPOS.Shared.DTOs;
 using IslandPostPOS.Shared.Helpers;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Documents;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.IO.Ports;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Windows.System;
 using static IslandPostPOS.Views.Controls.NotificationBanner;
 
 namespace IslandPostPOS.ViewModels;
@@ -52,7 +48,7 @@ public partial class StorePageViewModel : ObservableObject
 
     public APIService Service { get; private set; }
 
-    public StorePageViewModel(APIService service, IDialogService dialogService,UsbComScannerService scannerService)
+    public StorePageViewModel(APIService service, IDialogService dialogService,UsbComScannerService scannerService, ReceiptService receiptService)
     {
         saleItems = new();
         Service = service;
@@ -66,6 +62,7 @@ public partial class StorePageViewModel : ObservableObject
         }
 
         _scanner = scannerService;
+        this.receiptService = receiptService;
     }
 
     private async void OnScanReceived(object? sender, string data)
@@ -142,15 +139,28 @@ public partial class StorePageViewModel : ObservableObject
         {
             ShowTotals();
         }
+
+        if(e.PropertyName == nameof(PurchaseItem.Quantity))
+        {
+            var purchaseItem = sender as PurchaseItem;
+           AmountToPay += purchaseItem?.Price ?? 0;
+        }
     }
 
     [RelayCommand]
     private void DeleteProduct(PurchaseItem p)
     {
-        AmountToPay -= p.Total ?? 0;
-        p.PropertyChanged -= PurchaseItem_PropertyChanged; // 👈 avoid memory leaks
-        SaleItems.Remove(p);
-        ShowTotals();
+        try
+        {
+            AmountToPay -= p.Total ?? 0;
+            p.PropertyChanged -= PurchaseItem_PropertyChanged; // 👈 avoid memory leaks
+            SaleItems.Remove(p);
+            ShowTotals();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Instance.Show("Error", ex.Message, NotificationSeverity.Error);
+        }
     }
 
     private void ShowTotals()
@@ -233,6 +243,7 @@ public partial class StorePageViewModel : ObservableObject
     {
         var saleDto = new SaleDTO
         {
+            IdUsers = Service.CurrentUser?.IdUsers,
             Subtotal = SubTotal,
             TotalTaxes = TotalTax,
             Total = SaleTotal,
@@ -287,6 +298,7 @@ public partial class StorePageViewModel : ObservableObject
 
     private CancellationTokenSource _cts;
     private UsbComScannerService _scanner;
+    private readonly ReceiptService receiptService;
 
     [RelayCommand]
     private async Task SearchProductsAsync(string query)
@@ -467,5 +479,37 @@ public partial class StorePageViewModel : ObservableObject
         _scanner.ScannerReconnected -= OnScannerReconnected;
     }
 
+    private async Task EmailReciept(string email)
+    {
+        var receipt = new ReceiptData
+        {
+            company_name = "Island Post Paradise Island",
+            company_address = "Royal Beach Club Paradise Island",
+            company_email = "islandpostphotospi@gmail.com",
+            receipt_no = _registeredSale.SaleNumber,
+            receipt_date = _registeredSale.RegistrationDate.Value.ToString("yyyy-MM-dd hh:mm:ss tt"),
+            footer = "Thank you for shopping with us!",
+            tax = "10",
+            logo = "https://craftmypdf-upload.s3-ap-southeast-1.amazonaws.com/3e9/b0d7c504-4ee7-4173-aa2d-12b16ec10814.png",
+            currency = "$"
+        };
 
+        foreach (var item in SaleItems)
+        {
+            receipt.items.Add(new ReceiptItem
+            {
+                description = item.Description,
+                qty = item.Quantity,
+                unitprice = item.Price ?? 0
+            });
+        }
+
+        var result = await receiptService.GenerateReceiptAsync(receipt);
+    }
+
+    [RelayCommand]
+    private async Task PrintReceipt()
+    {
+
+    }
 }

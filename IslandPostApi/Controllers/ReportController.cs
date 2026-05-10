@@ -8,22 +8,16 @@ namespace IslandPostApi.Controllers
     [ApiController]
     public class ReportController(ISaleService service) : ControllerBase
     {
-        [HttpGet("Report")]
-        public async Task<ActionResult<SaleReportDTO>> Report(string startDate, string endDate)
+        [HttpGet("ReportPdf")]
+        public async Task<IActionResult> ReportPdf(DateTime startDate, DateTime endDate)
         {
-            try
-            {
-                var report = await service.ReportAsync(startDate, endDate);
+            // startDate = 2026-04-01 00:00:00
+            // endDate   = 2026-04-01 23:59:59
 
-                if (report == null || !report.Any())
-                    return NotFound("No report data found for given criteria.");
+            var report = await service.ReportAsync(startDate, endDate);
 
-                return Ok(report);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
+            // Return DTO or PDF depending on your design
+            return Ok(report);
         }
     }
 }

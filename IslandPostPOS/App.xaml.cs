@@ -83,6 +83,7 @@ public partial class App : Application
         services.AddTransient<SalesHistoryViewModel>();
         services.AddTransient<ManagerCategoriesPage>();
         services.AddTransient<MangerCategoriesViewModel>();
+        services.AddSingleton<ReceiptService>();
         services.AddTransient<IDialogService>(sp =>
     new DialogService(App.MainWindow.Content.XamlRoot));
         services.AddTransient<HomePage>();

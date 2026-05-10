@@ -248,7 +248,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <Button Content="Print" HorizontalAlignment="Center" Height="50" Width="100"/>
+                <Button Content="Print" HorizontalAlignment="Center" Height="50" Width="100" Command="{x:Bind ViewModel.PrintReceiptCommand}"/>
                 <Button Content="Gift Reciept" Grid.Column="1" HorizontalAlignment="Center" Height="50" Width="100"/>
                 <Button Content="Other" Grid.Column="2" HorizontalAlignment="Center" Height="50" Width="100"/>
             </Grid>
